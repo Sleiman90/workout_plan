@@ -558,7 +558,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
   </div>
 
   <div class="tape-block">
-    <div class="tape-head"><span>The build</span><span>tap a week</span></div>
+    <div class="tape-head"><span>Weeks</span></div>
     <div class="tape"><div class="ticks" id="ticks"></div><div class="tape-rule"></div></div>
   </div>
 
@@ -2085,7 +2085,6 @@ function exPanel(d,day,isKneeDay){
 function weekCtl(w){
  const extra=state.total-24;
  return '<div class="wkctl"><button data-ins="'+w+'">Insert a week here</button>'+
-  '<button data-rep="'+w+'">Repeat this week</button>'+
   '<button data-del="'+w+'"'+(state.total<=24?' disabled':'')+'>Remove this week</button>'+
   '<span class="note">'+(extra>0?'+'+extra+' added · race '+raceDate():'race '+raceDate())+'</span></div>';
 }
@@ -2205,7 +2204,6 @@ function bindWeek(app,d){
   exOf(d,e.target.dataset.kother).other=e.target.value;
   clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{await save();renderWeek();},800);});
  app.querySelectorAll('[data-ins]').forEach(b=>b.onclick=()=>insertWeek(+b.dataset.ins,false));
- app.querySelectorAll('[data-rep]').forEach(b=>b.onclick=()=>insertWeek(+b.dataset.rep,true));
  app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>removeWeek(+b.dataset.del));
  app.querySelectorAll('[data-sat]').forEach(b=>b.onclick=()=>{d.satMode=b.dataset.sat;save();renderWeek();});
  app.querySelectorAll('[data-wed]').forEach(b=>b.onclick=()=>{d.wedType=b.dataset.wed;save();renderWeek();});
