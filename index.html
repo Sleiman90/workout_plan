@@ -568,7 +568,11 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 .tier-mine{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;
   color:var(--ink-faint);background:var(--stock);border-radius:3px;padding:1px 5px;margin-left:2px;}
 .lvlhead .tier-mine{background:var(--card);}
-.tier-del{display:inline-block;margin-top:8px;font-family:'DM Mono',monospace;font-size:10px;
+.variant-actions{display:flex;gap:12px;margin-top:8px;}
+.tier-edit{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--lane);cursor:pointer;}
+.tier-edit:hover{text-decoration:underline;}
+.tier-del{font-family:'DM Mono',monospace;font-size:10px;
   letter-spacing:.06em;text-transform:uppercase;color:var(--t3);cursor:pointer;}
 .tier-del:hover{text-decoration:underline;}
 .addvariant{width:100%;background:none;border:1px dashed var(--rule);border-radius:2px;padding:9px;
@@ -1625,7 +1629,8 @@ function orderSelect(d,w,dayId,type){
 let state={week:1,total:24,weeks:{}}, settings={circuit:['clam','stepdown','calf','tke'],customTiers:{tempo:[],interval:[]}};
 let saveTimer=null, libFilter='all', pkFilter='all', pkMode=null, pkDay=null, statTab='week';
 let panels={days:true,rate:false,stats:false,lib:false};
-let customForm=null; // 'tempo' | 'interval' | null — which add-a-session form is open
+let customForm=null; // 'tempo:easy' | 'tempo:medium' | ... | null — which level's add/edit form is open
+let editingTierId=null; // id of the custom session being edited, or null when adding a new one
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function acc(key,title,meta,body,done){
  const on=!!panels[key];
@@ -2362,14 +2367,19 @@ function renderWeek(){
         '<span class="tier-dur">'+(mine?esc(v.d):v.d)+'</span></div>':'')+
        '<div class="tier-struct">'+(mine?esc(v.s):v.s)+'</div>'+
        (v.e?'<div class="tier-ext">'+v.e+'</div>':'')+
-       (mine?'<span class="tier-del" data-tierdel="'+wmode+'|'+v.id+'" role="button" aria-label="Remove this session">remove</span>':'')+
+       (mine?'<span class="variant-actions">'+
+         '<span class="tier-edit" data-tieredit="'+wmode+'|'+v.id+'" role="button" aria-label="Edit this session">edit</span>'+
+         '<span class="tier-del" data-tierdel="'+wmode+'|'+v.id+'" role="button" aria-label="Remove this session">remove</span>'+
+        '</span>':'')+
        '</button>';
      });
+     const editingHere=editingTierId&&(settings.customTiers[wmode]||[]).some(c=>c.id===editingTierId&&c.lvl===base.id);
+     const editVals=editingHere?(settings.customTiers[wmode]||[]).find(c=>c.id===editingTierId):null;
      daysHtml+=customForm===(wmode+':'+base.id)
-      ? '<div class="tier-add"><input type="text" id="ctName" placeholder="Name, e.g. Fartlek" maxlength="60">'+
-        '<input type="text" id="ctDur" placeholder="Duration, e.g. 35 min" maxlength="20">'+
-        '<textarea id="ctStruct" placeholder="Structure — warm-up, main set, cool-down…" maxlength="400"></textarea>'+
-        '<div class="tier-add-row"><button class="pick-btn" data-ctsave="'+wmode+':'+base.id+'">Save session</button>'+
+      ? '<div class="tier-add"><input type="text" id="ctName" placeholder="Name, e.g. Fartlek" maxlength="60" value="'+(editVals?esc(editVals.n):'')+'">'+
+        '<input type="text" id="ctDur" placeholder="Duration, e.g. 35 min" maxlength="20" value="'+(editVals?esc(editVals.d):'')+'">'+
+        '<textarea id="ctStruct" placeholder="Structure — warm-up, main set, cool-down…" maxlength="400">'+(editVals?esc(editVals.s):'')+'</textarea>'+
+        '<div class="tier-add-row"><button class="pick-btn" data-ctsave="'+wmode+':'+base.id+'">'+(editVals?'Update session':'Save session')+'</button>'+
         '<button class="tier-add-cancel" data-ctcancel="1">Cancel</button></div></div>'
       : '<button class="addvariant" data-ctopen="'+wmode+':'+base.id+'">+ Add another '+base.n.toLowerCase()+' session</button>';
      daysHtml+='</div>';
@@ -2425,8 +2435,17 @@ function bindWeek(app,d){
  app.querySelectorAll('[data-wed]').forEach(b=>b.onclick=()=>{d.wedType=b.dataset.wed;save();renderWeek();});
  app.querySelectorAll('[data-lvlgroup]').forEach(b=>b.onclick=()=>{d.tier=b.dataset.lvlgroup;save();renderWeek();});
  app.querySelectorAll('[data-tier]').forEach(b=>b.onclick=()=>{d.tier=b.dataset.tier;save();renderWeek();});
- app.querySelectorAll('[data-ctopen]').forEach(b=>b.onclick=()=>{customForm=b.dataset.ctopen;renderWeek();});
- app.querySelectorAll('[data-ctcancel]').forEach(b=>b.onclick=()=>{customForm=null;renderWeek();});
+ app.querySelectorAll('[data-ctopen]').forEach(b=>b.onclick=()=>{customForm=b.dataset.ctopen;editingTierId=null;renderWeek();});
+ app.querySelectorAll('[data-ctcancel]').forEach(b=>b.onclick=()=>{customForm=null;editingTierId=null;renderWeek();});
+ app.querySelectorAll('[data-tieredit]').forEach(b=>b.onclick=(e)=>{
+  e.stopPropagation();
+  const [wmodeKey,id]=b.dataset.tieredit.split('|');
+  const entry=(settings.customTiers[wmodeKey]||[]).find(t=>t.id===id);
+  if(!entry)return;
+  editingTierId=id;
+  customForm=wmodeKey+':'+entry.lvl;
+  renderWeek();
+ });
  app.querySelectorAll('[data-ctsave]').forEach(b=>b.onclick=async()=>{
   const [wmodeKey,lvl]=b.dataset.ctsave.split(':');
   const name=(document.getElementById('ctName').value||'').trim();
@@ -2434,6 +2453,14 @@ function bindWeek(app,d){
   const struct=(document.getElementById('ctStruct').value||'').trim();
   if(!name||!struct){alert('Give it at least a name and a structure.');return;}
   if(!settings.customTiers[wmodeKey])settings.customTiers[wmodeKey]=[];
+  if(editingTierId){
+   const entry=settings.customTiers[wmodeKey].find(t=>t.id===editingTierId);
+   if(entry){entry.n=name;entry.d=dur||'—';entry.s=struct;}
+   await saveSet();
+   editingTierId=null;customForm=null;
+   renderWeek();
+   return;
+  }
   const id='c'+Date.now();
   settings.customTiers[wmodeKey].push({id:id,n:name,d:dur||'—',s:struct,lvl:lvl});
   await saveSet();
@@ -2441,12 +2468,14 @@ function bindWeek(app,d){
   d.tier=id;save();
   renderWeek();
  });
- app.querySelectorAll('[data-tierdel]').forEach(b=>b.onclick=async()=>{
+ app.querySelectorAll('[data-tierdel]').forEach(b=>b.onclick=async(e)=>{
+  e.stopPropagation();
   const [wmodeKey,id]=b.dataset.tierdel.split('|');
   if(!confirm('Remove this session from your list?'))return;
   const removed=(settings.customTiers[wmodeKey]||[]).find(t=>t.id===id);
   settings.customTiers[wmodeKey]=(settings.customTiers[wmodeKey]||[]).filter(t=>t.id!==id);
   if(d.tier===id)d.tier=(removed&&removed.lvl)||'medium';
+  if(editingTierId===id){editingTierId=null;customForm=null;}
   await saveSet();save();
   renderWeek();
  });
