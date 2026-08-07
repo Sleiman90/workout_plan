@@ -593,6 +593,14 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
   border-radius:2px;font-size:12.5px;color:var(--ink-soft);}
 .setstotal b{font-family:'Anton',sans-serif;font-weight:400;font-size:16px;color:var(--ink);margin-right:4px;}
 .day-detail em{font-style:normal;color:var(--ink);font-weight:600;}
+
+.gymfield input[data-res]{margin-bottom:5px;}
+.gymcalc{display:flex;align-items:center;gap:5px;}
+.gymcalc input{flex:1;min-width:0;background:var(--stock);border:1px solid var(--rule);border-radius:2px;
+  padding:5px 6px;font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-soft);}
+.gymcalc input:focus{outline:2px solid var(--track);outline-offset:-1px;color:var(--ink);}
+.gymx{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-faint);flex:0 0 auto;}
+.res-sub{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--ink-faint);margin:-4px 0 9px;}
 </style>
 </head>
 <body>
@@ -1713,9 +1721,16 @@ function syncPace(d,day){
 }
 function gymTotal(r){
  if(!r)return null;
- let sets=0,any=false;
- Object.keys(MUSC).forEach(k=>{const n=parseFloat(r[k]);if(!isNaN(n)&&n>0){sets+=n;any=true;}});
- return any?{sets:sets}:null;
+ let ex=0,sets=0,any=false;
+ Object.keys(MUSC).forEach(k=>{
+  const n=parseFloat(r[k]);
+  if(!isNaN(n)&&n>0){
+   any=true;ex+=n;
+   const per=parseFloat(r[k+'Per']);
+   if(!isNaN(per)&&per>0)sets+=n*per;
+  }
+ });
+ return any?{ex:ex,sets:sets}:null;
 }
 function syncSets(d,day){
  const r=d.res&&d.res[day];if(!r)return;
@@ -2264,6 +2279,19 @@ function fieldRow(day,defs,res){
   ((res&&res[f[0]])||'')+'" placeholder="'+(f[3]||'')+'"></div>';});
  return h+'</div>';
 }
+function gymFieldRow(day,defs,res){
+ let h='<div class="fields">';
+ defs.forEach(f=>{
+  const key=f[0],per=key+'Per';
+  h+='<div class="field gymfield"><label>'+f[1]+'</label><div class="gymcalc">'+
+   '<input type="text" inputmode="numeric" data-res="'+day+'.'+key+'" value="'+
+   ((res&&res[key])||'')+'" placeholder="'+(f[3]||'ex')+'">'+
+   '<span class="gymx">×</span>'+
+   '<input type="text" inputmode="numeric" data-res="'+day+'.'+per+'" value="'+
+   ((res&&res[per])||'')+'" placeholder="sets"></div></div>';
+ });
+ return h+'</div>';
+}
 function exPanel(d,day,isKneeDay){
  const K=exOf(d,day);
  let n=parseInt(K.other,10)||0;
@@ -2289,14 +2317,14 @@ function weekCtl(w){
 }
 function daySpec(d,w,type){
  if(type==='push')return {t:'Strength — push',k:'gym',
-   det:'Chest, shoulders, triceps. Enter <em>total sets</em> per muscle — if chest press was 4 sets and flyes were 3, that\'s 7 for chest.',
-   res:{f:[['chest','Chest sets','text','7'],['shoulders','Shoulders sets','text','6'],['triceps','Triceps sets','text','4']]}};
+   det:'Chest, shoulders, triceps. For each, exercises done and sets each — the total works itself out below.',
+   res:{f:[['chest','Chest','text','2'],['shoulders','Shoulders','text','2'],['triceps','Triceps','text','1']]}};
  if(type==='pull')return {t:'Strength — pull and legs',k:'gym',
-   det:'Back, biceps, posterior chain — RDLs, hip thrusts, leg curls. Enter <em>total sets</em> per muscle, adding up however many each exercise actually was.',
-   res:{f:[['back','Back sets','text','8'],['biceps','Biceps sets','text','4'],['legs','Legs sets','text','6']]}};
+   det:'Back, biceps, posterior chain — RDLs, hip thrusts, leg curls. Exercises done and sets each, per muscle.',
+   res:{f:[['back','Back','text','2'],['biceps','Biceps','text','1'],['legs','Legs','text','2']]}};
  if(type==='full')return {t:'Strength — full body',k:'gym',
-   det:'Every muscle group gets a touch — moderate leg load, so the long run day still has something to work with. Enter <em>total sets</em> per muscle.',
-   res:{f:[['chest','Chest sets','text','3'],['shoulders','Shoulders sets','text','3'],['triceps','Triceps sets','text','3'],['back','Back sets','text','3'],['biceps','Biceps sets','text','3'],['legs','Legs sets','text','3']]}};
+   det:'Every muscle group gets a touch — moderate leg load, so the long run day still has something to work with.',
+   res:{f:[['chest','Chest','text','1'],['shoulders','Shoulders','text','1'],['triceps','Triceps','text','1'],['back','Back','text','1'],['biceps','Biceps','text','1'],['legs','Legs','text','1']]}};
  if(type==='easy')return {t:'Easy run',k:'run',
    det:'<span class="num">5.0–8.0 km</span> in <span class="num">30–55 min</span> at 5:45–6:00/km. Pick the length on the day.',
    res:{f:[['time','Time','text','30:00'],['dist','Distance km','text','5.0'],['pace','Avg pace','text','5:52'],['hr','Avg HR']]}};
@@ -2407,12 +2435,14 @@ function renderWeek(){
    }
   }
   if(day.res){
-   daysHtml+='<div class="res"><div class="res-h">What you did</div>'+fieldRow(day.id,day.res.f,d.res[day.id]);
+   daysHtml+='<div class="res"><div class="res-h">What you did</div>'+
+    (day.k==='gym'?'<p class="res-sub">Exercises done, then sets each — the total works itself out</p>':'')+
+    (day.k==='gym'?gymFieldRow(day.id,day.res.f,d.res[day.id]):fieldRow(day.id,day.res.f,d.res[day.id]));
    if(day.k==='gym'){
     const g=gymTotal(d.res[day.id]);
     daysHtml+='<div class="setstotal">'+(g
-      ?'<b>'+g.sets+'</b> total sets this session'
-      :'Fill in sets per muscle above — the total adds itself up.')+'</div>';
+      ?'<b>'+g.ex+'</b> exercise'+(g.ex===1?'':'s')+' · <b>'+g.sets+'</b> total sets'
+      :'Fill in exercises and sets per muscle above — the total works itself out.')+'</div>';
    }
    daysHtml+='</div>';
   }
@@ -2511,7 +2541,7 @@ function bindWeek(app,d){
   if(!d.res[p[0]])d.res[p[0]]={};
   d.res[p[0]][p[1]]=e.target.value;
   if(p[1]==='time'||p[1]==='dist')syncPace(d,p[0]);
-  if(Object.prototype.hasOwnProperty.call(MUSC,p[1]))syncSets(d,p[0]);
+  if(Object.prototype.hasOwnProperty.call(MUSC,p[1])||p[1].endsWith('Per'))syncSets(d,p[0]);
   clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{await save();renderWeek();},900);});
 }
 
