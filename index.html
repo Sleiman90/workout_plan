@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>22:40 → Sub-20 · 24-Week Build</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,12 +23,13 @@
   --t1:#3d6f57; --t2:#b0801f; --t3:#a3311c;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
+button{font-family:inherit;color:inherit;background:none;border:0;-webkit-appearance:none;appearance:none;}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important;}}
 html{-webkit-text-size-adjust:100%;}
 body{background:var(--stock);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;
-  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;padding:0 0 64px;}
+  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  padding:env(safe-area-inset-top,0px) 0 calc(64px + env(safe-area-inset-bottom,0px));}
 .shell{max-width:880px;margin:0 auto;padding:0 20px;}
-button{font-family:inherit;}
 
 /* hero */
 .hero{padding:38px 0 22px;}
@@ -122,7 +123,7 @@ button{font-family:inherit;}
 .tier:focus-visible{outline:2px solid var(--track);outline-offset:1px;}
 .tier-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
 .tier-name{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.13em;text-transform:uppercase;
-  display:flex;align-items:center;gap:7px;}
+  display:flex;align-items:center;gap:7px;color:var(--ink);}
 .tier-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto;}
 .t-1 .tier-dot{background:var(--t1);} .t-2 .tier-dot{background:var(--t2);} .t-3 .tier-dot{background:var(--t3);}
 .tier-dur{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-soft);}
@@ -409,16 +410,6 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 .heat-c.cur{outline:1px solid var(--ink-faint);outline-offset:-1px;}
 .radar svg{width:100%;max-width:220px;height:auto;display:block;margin:0 auto;}
 
-.demo{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:14px;
-  padding:9px 11px;background:var(--card);border:1px dashed var(--rule);border-radius:2px;}
-.demo button{background:var(--stock);border:1px solid var(--rule);border-radius:2px;padding:6px 11px;
-  font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;
-  color:var(--ink-soft);cursor:pointer;}
-.demo button:hover{border-color:var(--ink);color:var(--ink);}
-.demo button:focus-visible{outline:2px solid var(--track);outline-offset:2px;}
-.demo .lbl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--ink-faint);margin-right:2px;}
-
 /* hero portrait */
 .maintitle{font-family:'Anton',sans-serif;font-weight:400;font-size:clamp(26px,6.4vw,42px);
   line-height:1;letter-spacing:.005em;text-align:center;margin:6px 0 18px;}
@@ -452,7 +443,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
   background:none;border:none;padding:14px 15px;cursor:pointer;text-align:left;}
 .acc-h:hover{background:rgba(21,23,26,.03);}
 .acc-h:focus-visible{outline:2px solid var(--track);outline-offset:-2px;}
-.acc-t{font-family:'Anton',sans-serif;font-size:17px;letter-spacing:.01em;}
+.acc-t{font-family:'Anton',sans-serif;font-size:17px;letter-spacing:.01em;color:var(--ink);}
 .acc-m{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;
   color:var(--ink-faint);margin-left:auto;}
 .acc-x{font-family:'DM Mono',monospace;font-size:15px;color:var(--ink-faint);
@@ -1913,78 +1904,6 @@ function radar(sum,n){
 function rateColor(v){return v>=4?'var(--t1)':(v===3?'var(--t2)':(v>0?'var(--t3)':'var(--rule)'));}
 
 
-/* ═══ sample data ═══ */
-function rnd(a,b){return a+Math.random()*(b-a);}
-function ri(a,b){return Math.floor(rnd(a,b+0.999));}
-function pick(arr,n){const c=arr.slice();const o=[];while(o.length<n&&c.length)o.push(c.splice(ri(0,c.length-1),1)[0]);return o;}
-function mmss(sec){const m=Math.floor(sec/60),x=Math.round(sec%60);
- return (m>=60?Math.floor(m/60)+':'+String(m%60).padStart(2,'0'):m)+':'+String(x).padStart(2,'0');}
-function seedDemo(){
- const N=state.total;
- const supportIds=KNEE.filter(k=>SUPPORT.indexOf(k.g)>=0).map(k=>k.id);
- state.weeks={};
- for(let w=1;w<=N;w++){
-  const prog=N>1?(w-1)/(N-1):0;
-  const gain=prog*24;                       // seconds per km gained across the block
-  const skip=Math.random()<0.16;            // an occasional off week
-  const d={days:{},wedType:(w%2===1?'tempo':'interval'),tier:['easy','medium','hard'][ri(0,2)],
-    res:{},rate:{},route:{},knee:{},open:{}};
-
-  // Monday easy
-  if(!skip||Math.random()<0.7){
-   const km=+rnd(5.0,8.0).toFixed(2), pace=rnd(350,358)-gain;
-   d.days.mon=true;
-   d.res.mon={dist:String(km),time:mmss(km*pace),pace:fmtPace(pace),hr:String(ri(138,152))};
-  }
-  // Wednesday session
-  if(Math.random()<0.9){
-   const tempo=d.wedType==='tempo';
-   const km=+rnd(tempo?7.2:9.2,tempo?7.9:10.2).toFixed(2);
-   const pace=(tempo?rnd(294,300):rnd(302,310))-gain;
-   d.days.wed=true;
-   d.res.wed={dist:String(km),time:mmss(km*pace),pace:fmtPace(pace),hr:String(ri(158,176))};
-  }
-  // Saturday long (or race in the final week)
-  if(Math.random()<0.92){
-   d.days.sat=true;
-   if(w===N){const t=rnd(1195,1245)-prog*20;
-    d.res.sat={dist:'5.00',time:mmss(t),pace:fmtPace(t/5),hr:String(ri(174,186))};}
-   else{const km=+rnd(9.0,16.0).toFixed(2), pace=rnd(355,364)-gain;
-    d.res.sat={dist:String(km),time:mmss(km*pace),pace:fmtPace(pace),hr:String(ri(142,156))};}
-  }
-  // strength
-  if(Math.random()<0.88){d.days.tue=true;
-   d.res.tue={chest:String(ri(2,4)),shoulders:String(ri(2,4)),triceps:String(ri(1,3)),sets:String(ri(14,22))};}
-  if(Math.random()<0.85){d.days.thu=true;
-   d.res.thu={back:String(ri(2,4)),biceps:String(ri(1,3)),legs:String(ri(2,4)),sets:String(ri(15,24))};}
-  if(Math.random()<0.7){d.days.fri=true;
-   d.res.fri={chest:String(ri(1,3)),back:String(ri(1,3)),legs:String(ri(2,4)),sets:String(ri(10,18))};}
-  if(Math.random()<0.8)d.days.sun=true;
-
-  // knee circuits, warm-ups and cool-downs
-  KNEEDAYS.forEach(day=>{
-   if(!d.days[day]||Math.random()<0.22)return;
-   d.knee[day]={done:pick(supportIds,ri(3,6)),other:Math.random()<0.25?String(ri(1,2)):''};
-  });
-
-  state.weeks[w]=d;
- }
- state.week=Math.max(1,N-1);
- statTab='all';
- save();renderAll();
-}
-function wipeAll(){
- state.weeks={};state.week=1;statTab='week';
- save();renderAll();
-}
-function demoBar(){
- const any=Object.keys(state.weeks).length>0;
- return '<div class="demo"><span class="lbl">Try it out</span>'+
-  '<button id="demoFill">Fill with sample data</button>'+
-  (any?'<button id="demoWipe">Clear everything</button>':'')+
-  '<span class="lbl" style="margin-left:auto">Sample data replaces your log</span></div>';
-}
-
 /* ═══ stats panels ═══ */
 function sec(t,body,metric){return '<div class="sblock"><h5>'+t+(metric?'<span class="metric">'+metric+'</span>':'')+'</h5>'+body+'</div>';}
 function muscleRows(m){return Object.keys(MUSC).map(k=>({l:MUSC[k],v:m[k]||0})).filter(r=>r.v>0);}
@@ -2061,7 +1980,7 @@ function panelAll(){
  return h;
 }
 function renderStats(){
- return '<div class="stats">'+demoBar()+'<div class="stabs">'+
+ return '<div class="stats"><div class="stabs">'+
   '<button data-stab="week" class="'+(statTab==='week'?'on':'')+'">This week</button>'+
   '<button data-stab="all" class="'+(statTab==='all'?'on':'')+'">Weeks 1–'+state.week+'</button></div>'+
   '<div class="spanel">'+(statTab==='week'?panelWeek():panelAll())+'</div></div>';
@@ -2293,10 +2212,6 @@ function bindWeek(app,d){
   panels[b.dataset.acc]=!panels[b.dataset.acc];
   settings.panels=panels;saveSet();renderWeek();renderLibSection();});
  app.querySelectorAll('[data-stab]').forEach(b=>b.onclick=()=>{statTab=b.dataset.stab;renderWeek();});
- const df=document.getElementById('demoFill');
- if(df)df.onclick=()=>{if(confirm('Replace everything in your log with generated sample data?'))seedDemo();};
- const dw=document.getElementById('demoWipe');
- if(dw)dw.onclick=()=>{if(confirm('Clear all logged data? This cannot be undone.'))wipeAll();};
  app.querySelectorAll('[data-res]').forEach(i=>i.oninput=e=>{
   const p=e.target.dataset.res.split('.');
   if(!d.res[p[0]])d.res[p[0]]={};
