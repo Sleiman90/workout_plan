@@ -1500,7 +1500,114 @@ const KNEE=[
 {id:'bulgarianjump',g:'knee',name:'Bulgarian split squat jump',tgt:'Quads, glutes, single-leg power',dose:'3 × 6 / leg',
  cue:'Rear foot on a bench as in a normal Bulgarian split squat, but drive up into a small jump on the front leg, landing soft back into the same position.',
  why:'The explosive version of the Bulgarian split squat — single-leg power in exactly the position running loads the front leg. Demanding: only add it once the strength version feels easy.',
- svg:FLOOR+'<path class="env" d="M96 72H124 M110 72V88"/><circle class="hd" cx="62" cy="20" r="6.5"><animate attributeName="cy" values="20;38;16;38;20" keyTimes="0;0.3;0.5;0.7;1" dur="2.6s" repeatCount="indefinite"/></circle><path class="ln" d="M62 27 62 50">'+anim('M62 27 62 50;M62 45 62 66;M62 23 62 46;M62 45 62 66;M62 27 62 50','2.6s','0;0.3;0.5;0.7;1')+'</path><path class="wk" d="M62 50 54 68 54 90">'+anim('M62 50 54 68 54 90;M62 66 50 80 54 90;M62 46 54 64 54 90;M62 66 50 80 54 90;M62 50 54 68 54 90','2.6s','0;0.3;0.5;0.7;1')+'</path>'}
+ svg:FLOOR+'<path class="env" d="M96 72H124 M110 72V88"/><circle class="hd" cx="62" cy="20" r="6.5"><animate attributeName="cy" values="20;38;16;38;20" keyTimes="0;0.3;0.5;0.7;1" dur="2.6s" repeatCount="indefinite"/></circle><path class="ln" d="M62 27 62 50">'+anim('M62 27 62 50;M62 45 62 66;M62 23 62 46;M62 45 62 66;M62 27 62 50','2.6s','0;0.3;0.5;0.7;1')+'</path><path class="wk" d="M62 50 54 68 54 90">'+anim('M62 50 54 68 54 90;M62 66 50 80 54 90;M62 46 54 64 54 90;M62 66 50 80 54 90;M62 50 54 68 54 90','2.6s','0;0.3;0.5;0.7;1')+'</path>'},
+
+/* ══ from your list — new additions ══ */
+{id:'sideskate',g:'hip',name:'Side skater step',tgt:'Glute medius, frontal-plane control',dose:'3 × 12 / side',
+ cue:'Step sideways into a soft-knee landing, tap the trailing foot behind, hold a beat, then push back the other way. Controlled, not a bound.',
+ why:'The unhurried version of a skater bound — same lateral loading pattern, without the landing-impact demand, so it fits earlier in a knee-rehab progression.',
+ svg:FLOOR+'<circle class="hd" cx="46" cy="28" r="6.5"><animate attributeName="cx" values="46;92;46" dur="3.2s" repeatCount="indefinite"/></circle><path class="wk" d="M46 35 48 58 42 88">'+anim('M46 35 48 58 42 88;M92 35 90 58 96 88;M46 35 48 58 42 88','3.2s')+'</path><path class="ln" d="M46 35 40 58 24 66">'+anim('M46 35 40 58 24 66;M92 35 98 58 114 66;M46 35 40 58 24 66','3.2s')+'</path>'},
+
+{id:'curtsy',g:'hip',name:'Curtsy lunge',tgt:'Glute medius, adductors',dose:'3 × 10 / side',
+ cue:'Step one leg diagonally behind and across, bend both knees into a curtsy, front knee tracking over the toes. Push back through the front heel.',
+ why:'Loads the glute medius through a rotated, cross-body line that straight-ahead lunges miss entirely — closer to the control needed on a cambered road.',
+ svg:FLOOR+'<circle class="hd" cx="66" cy="24" r="6.5"><animate attributeName="cy" values="24;36;24" dur="3s" repeatCount="indefinite"/></circle><path class="ln" d="M66 31 66 54">'+anim('M66 31 66 54;M66 45 66 66;M66 31 66 54','3s')+'</path><path class="wk" d="M66 54 64 72 64 90">'+anim('M66 54 64 72 64 90;M66 66 62 80 62 90;M66 54 64 72 64 90','3s')+'</path><path class="ln" d="M66 54 44 68 40 88">'+anim('M66 54 44 68 40 88;M66 66 84 76 92 84;M66 54 44 68 40 88','3s')+'</path>'},
+
+{id:'latshuffle',g:'knee',name:'Lateral shuffle',tgt:'Knee tracking, frontal-plane control',dose:'4 × 10 m each way',
+ cue:'Quarter-squat stance, shuffle sideways in short quick steps without crossing the feet or letting the knees cave inward.',
+ why:'Sideways movement under a bent-knee stance is exactly where knee valgus tends to show up — this trains the control directly rather than testing it once and hoping.',
+ svg:FLOOR+'<circle class="hd" cx="50" cy="26" r="6.5"><animate attributeName="cx" values="50;90;50" dur="2.4s" repeatCount="indefinite"/></circle><path class="ln" d="M50 33 50 56">'+anim('M50 33 50 56;M90 33 90 56;M50 33 50 56','2.4s')+'</path><path class="wk" d="M42 56 46 74 42 90">'+anim('M42 56 46 74 42 90;M82 56 86 74 82 90;M42 56 46 74 42 90','2.4s')+'</path><path class="ln" d="M58 56 54 74 58 90">'+anim('M58 56 54 74 58 90;M98 56 94 74 98 90;M58 56 54 74 58 90','2.4s')+'</path>'},
+
+{id:'slpogo',g:'knee',name:'Single-leg pogo hops',tgt:'Knee and ankle stiffness',dose:'3 × 15 / leg',
+ cue:'Small, fast hops on one leg, stiff ankle, minimal knee bend. Land and rebound quickly, like the ground is hot.',
+ why:'One-legged loading at speed — a step up from the two-footed version, and closer to the split-second demand of actual running.',
+ svg:FLOOR+'<circle class="hd" cx="66" cy="26" r="6.5"><animate attributeName="cy" values="26;19;26" dur="0.6s" repeatCount="indefinite"/></circle><path class="ln" d="M66 33 66 56">'+anim('M66 33 66 56;M66 26 66 49;M66 33 66 56','0.6s')+'</path><path class="wk" d="M66 56 66 84 80 88">'+anim('M66 56 66 84 80 88;M66 49 70 78 84 82;M66 56 66 84 80 88','0.6s')+'</path><path class="ln" d="M66 56 78 68 76 80">'+anim('M66 56 78 68 76 80;M66 49 80 60 78 72;M66 56 78 68 76 80','0.6s')+'</path>'},
+
+{id:'lungejump',g:'knee',name:'Lunge jump',tgt:'Knee power, single-leg',dose:'3 × 8 / side',
+ cue:'From a lunge, jump straight up and land softly back in the same lunge — no leg switch, just up and down. Add the switch-jump version only once this feels controlled.',
+ why:'Vertical power in a lunge stance loads the front knee explosively in a single plane, a calmer entry point than a full split-jump before you add the mid-air switch.',
+ svg:FLOOR+'<circle class="hd" cx="66" cy="24" r="6.5"><animate attributeName="cy" values="24;10;24" dur="1.6s" repeatCount="indefinite"/></circle><path class="ln" d="M66 31 66 52">'+anim('M66 31 66 52;M66 17 66 38;M66 31 66 52','1.6s')+'</path><path class="wk" d="M66 52 70 72 70 90">'+anim('M66 52 70 72 70 90;M66 38 70 58 70 78;M66 52 70 72 70 90','1.6s')+'</path><path class="ln" d="M66 52 56 72 52 90">'+anim('M66 52 56 72 52 90;M66 38 56 58 52 78;M66 52 56 72 52 90','1.6s')+'</path>'},
+
+{id:'lungehighknee',g:'knee',name:'Lunge to high knee',tgt:'Knee stability, balance, power',dose:'3 × 8 / side',
+ cue:'Step into a lunge, then drive up and pull the back knee to hip height, balancing tall for a beat before stepping back down.',
+ why:'Combines eccentric lunge control with a single-leg balance finish — trains the deceleration and the stability that follows it in one rep.',
+ svg:FLOOR+'<circle class="hd" cx="66" cy="24" r="6.5"><animate attributeName="cy" values="24;38;20;24" keyTimes="0;0.4;0.7;1" dur="2.8s" repeatCount="indefinite"/></circle><path class="ln" d="M66 31 66 54">'+anim('M66 31 66 54;M66 45 66 66;M66 27 66 46;M66 31 66 54','2.8s','0;0.4;0.7;1')+'</path><path class="wk" d="M66 54 70 72 70 90">'+anim('M66 54 70 72 70 90;M66 66 70 78 70 90;M66 46 78 54 72 40;M66 54 70 72 70 90','2.8s','0;0.4;0.7;1')+'</path>'},
+
+{id:'slhighjump',g:'knee',name:'Single-leg high jump',tgt:'Knee power, max effort',dose:'3 × 5 / leg',
+ cue:'From standing on one leg, jump straight up for maximum height, landing softly on the same leg. Full recovery between jumps — this is a power rep, not conditioning.',
+ why:'The ceiling test of single-leg power. Demanding by design — earn it after split squat jumps and pogo hops feel easy, not before.',
+ svg:FLOOR+'<circle class="hd" cx="66" cy="22" r="6.5"><animate attributeName="cy" values="22;4;22" dur="1.8s" repeatCount="indefinite"/></circle><path class="ln" d="M66 29 66 52">'+anim('M66 29 66 52;M66 11 66 40;M66 29 66 52','1.8s')+'</path><path class="wk" d="M66 52 66 78 78 88">'+anim('M66 52 66 78 78 88;M66 40 62 66 76 74;M66 52 66 78 78 88','1.8s')+'</path>'},
+
+{id:'bentkneecalf',g:'ankle',name:'Bent-knee calf raise',tgt:'Soleus, concentric',dose:'3 × 15',
+ cue:'Knees bent about 20–30°, rise onto the toes keeping that bend the whole way up. The concentric partner to the bent-knee heel drop.',
+ why:'Loads the soleus on the way up, not just the way down — pairs with the eccentric drop to cover both directions of the same muscle.',
+ svg:FLOOR+'<circle class="hd" cx="66" cy="30" r="6.5"><animate attributeName="cy" values="30;22;30" dur="2s" repeatCount="indefinite"/></circle><path class="ln" d="M66 37 66 58">'+anim('M66 37 66 58;M66 29 66 50;M66 37 66 58','2s')+'</path><path class="wk" d="M66 58 62 76 76 88">'+anim('M66 58 62 76 76 88;M66 50 62 70 76 84;M66 58 62 76 76 88','2s')+'</path>'},
+
+{id:'wallsitcalf',g:'ankle',name:'Wall sit calf raise',tgt:'Quads (isometric), calf',dose:'3 × 15 pulses',
+ cue:'Hold a wall sit and pulse the heels up and down without leaving the sit. Small range, quick tempo.',
+ why:'Stacks a calf pump on top of quad isometric loading — efficient when time is short, and the wall sit keeps the knee honest while the calves do the work.',
+ svg:'<path class="env" d="M20 10V90 M20 90H126"/><circle class="hd" cx="34" cy="26" r="6.5"/><path class="ln" d="M28 33 28 56"/><path class="wk" d="M28 56 62 56 66 84">'+anim('M28 56 62 56 66 84;M28 56 62 56 62 80;M28 56 62 56 66 84','1.4s')+'</path>'},
+
+{id:'splitsquatcalf',g:'ankle',name:'Split squat calf raise',tgt:'Quads, glutes, calf',dose:'3 × 10 / side',
+ cue:'Hold the bottom of a split squat and pulse the front heel up and down for the set, then switch sides.',
+ why:'Same efficiency idea as the wall sit version, in a single-leg position that carries over more directly to push-off.',
+ svg:FLOOR+'<circle class="hd" cx="62" cy="34" r="6.5"/><path class="ln" d="M62 41 62 62"/><path class="wk" d="M62 62 80 74 82 90">'+anim('M62 62 80 74 82 90;M62 62 80 74 80 86;M62 62 80 74 82 90','1.4s')+'</path><path class="ln" d="M62 62 46 80 40 90"/>'},
+
+{id:'quadtke',g:'knee',name:'Quadruped band TKE',tgt:'VMO, knee lockout',dose:'3 × 15 / leg',
+ cue:'On hands and knees, band looped around the working ankle and anchored behind you. Straighten that knee back against the band, hold, return slowly.',
+ why:'Same terminal-extension target as the seated version, but the quadruped position adds a light core and hip-stability demand on top of it.',
+ svg:FLOOR+'<circle class="hd" cx="28" cy="52" r="6"/><path class="ln" d="M34 56 78 58"/><path class="ln" d="M36 58 36 88"/><path class="wk" d="M78 58 100 66 108 62">'+anim('M78 58 100 66 108 62;M78 58 104 72 118 76;M78 58 100 66 108 62','2.6s')+'</path><path class="bnd" d="M108 62 118 82">'+anim('M108 62 118 82;M118 76 118 82;M108 62 118 82','2.6s')+'</path>'},
+
+{id:'bandreversenordic',g:'knee',name:'Band-assisted reverse Nordic',tgt:'Quads, eccentric (assisted)',dose:'3 × 10',
+ cue:'Same lean-back position as the reverse Nordic, but a band looped around the chest and anchored in front takes some of the load off, so you can lean further with control.',
+ why:'A regression for anyone who finds the full reverse Nordic too much too soon — same eccentric quad pattern, dialled back to something repeatable.',
+ svg:'<path class="env" d="M100 20V88"/><circle class="hd" cx="60" cy="28" r="6.5"><animate attributeName="cx" values="60;76;60" dur="3.4s" repeatCount="indefinite"/><animate attributeName="cy" values="28;42;28" dur="3.4s" repeatCount="indefinite"/></circle><path class="wk" d="M60 35 62 64">'+anim('M60 35 62 64;M76 48 64 66;M60 35 62 64','3.4s')+'</path><path class="ln" d="M62 64 44 82 62 88"/><path class="bnd" d="M60 35 100 40">'+anim('M60 35 100 40;M76 48 100 42;M60 35 100 40','3.4s')+'</path>'},
+
+{id:'stepuptke',g:'knee',name:'Step-up with TKE',tgt:'Quads, VMO combo',dose:'3 × 10 / leg',
+ cue:'Step up onto a low box, then at the top add a small terminal knee extension pulse before stepping back down.',
+ why:'Chains two rehab staples into one rep — the functional step-up and the isolated lockout work, back to back instead of as separate sets.',
+ svg:'<path class="env" d="M14 90H72 M72 68H120 M72 68V90"/><circle class="hd" cx="88" cy="26" r="6.5"><animate attributeName="cy" values="26;20;26" dur="2.8s" repeatCount="indefinite"/></circle><path class="ln" d="M88 33 88 52">'+anim('M88 33 88 52;M88 27 88 46;M88 33 88 52','2.8s')+'</path><path class="wk" d="M88 52 92 62 92 68">'+anim('M88 52 92 62 92 68;M88 46 96 56 100 60;M88 52 92 62 92 68','2.8s')+'</path>'},
+
+{id:'gobletbox',g:'knee',name:'Goblet box squat',tgt:'Quads, glutes, controlled depth',dose:'3 × 10',
+ cue:'Weight at the chest, squat down to lightly tap a box behind you, pause, drive back up. The box fixes your depth so every rep matches.',
+ why:'Loaded, and the box takes the guesswork out of how deep is safe — useful while you\'re still finding your pain-free range.',
+ svg:FLOOR+'<path class="env" d="M46 74H90 M46 74V90 M90 74V90"/><circle class="hd" cx="70" cy="24" r="6.5"><animate attributeName="cy" values="24;36;24" dur="3s" repeatCount="indefinite"/></circle><path class="ln" d="M70 31 70 54">'+anim('M70 31 70 54;M70 43 70 62','3s')+'</path><circle class="env" cx="70" cy="40" r="5" fill="none"><animate attributeName="cy" values="40;56;40" dur="3s" repeatCount="indefinite"/></circle><path class="wk" d="M70 54 80 66 80 74">'+anim('M70 54 80 66 80 74;M70 62 84 70 84 74','3s')+'</path>'},
+
+{id:'legextfull',g:'knee',name:'Leg extension (full range)',tgt:'Quads, full range',dose:'3 × 12 / leg',
+ cue:'Seated, straighten the knee all the way through to lockout, pause, lower over three seconds. The full-range partner to the partial version.',
+ why:'More load reaches the quad through full extension than a partial rep allows — use this once the last few degrees stop being painful.',
+ svg:'<path class="env" d="M14 90H126 M22 56H58 M22 56V90"/><circle class="hd" cx="40" cy="30" r="6.5"/><path class="ln" d="M40 37 40 56"/><path class="ln" d="M40 56 74 56"/><path class="wk" d="M74 56 74 84">'+anim('M74 56 74 84;M100 56 100 60;M74 56 74 84','2.8s')+'</path>'},
+
+{id:'revstepdown',g:'knee',name:'Reverse step-down',tgt:'Quads, eccentric control',dose:'3 × 10 / leg',
+ cue:'Stand on a step facing forward, lower the free heel toward the floor behind you over three seconds, tap, return. The opposite direction from a normal step-down.',
+ why:'Loads the quad eccentrically through a slightly different line than the forward step-down — worth rotating in if that one has plateaued.',
+ svg:'<path class="env" d="M14 90H70 M70 74H120 M70 74V90"/><circle class="hd" cx="90" cy="26" r="6.5"><animate attributeName="cy" values="26;39;26" keyTimes="0;0.7;1" dur="3.4s" repeatCount="indefinite"/></circle><path class="ln" d="M90 33 90 52">'+anim('M90 33 90 52;M90 46 90 63;M90 33 90 52','3.4s','0;0.7;1')+'</path><path class="wk" d="M90 52 96 64 92 74">'+anim('M90 52 96 64 92 74;M90 63 100 70 92 74;M90 52 96 64 92 74','3.4s','0;0.7;1')+'</path><path class="ln" d="M90 52 78 66 74 84">'+anim('M90 52 78 66 74 84;M90 63 70 78 66 90;M90 52 78 66 74 84','3.4s','0;0.7;1')+'</path>'},
+
+{id:'plankleglift',g:'run',name:'Front plank with leg lift',tgt:'Trunk, glutes',dose:'3 × 10 / side',
+ cue:'Hold a front plank and lift one straight leg a few inches off the floor without letting the hips rotate or sag, alternate sides.',
+ why:'Adds a glute-activation demand on top of the trunk hold — the hips are what usually give first, so this trains the exact failure point.',
+ svg:FLOOR+'<circle class="hd" cx="30" cy="62" r="6"/><path class="wk" d="M36 66 102 76"/><path class="ln" d="M40 68 34 88"/><path class="ln" d="M102 76 108 62">'+anim('M102 76 108 62;M102 76 118 84;M102 76 108 62','2.6s')+'</path>'},
+
+{id:'rfelateralpogo',g:'knee',name:'Rear-foot-elevated lateral pogo',tgt:'Knee and ankle stiffness, balance',dose:'3 × 10 / side',
+ cue:'Rear foot resting on a low bench behind you, small fast lateral hops on the front leg. Advanced — only once flat-ground lateral hops feel easy.',
+ why:'Removes the back leg as a balance crutch, so the front leg has to control the landing entirely on its own.',
+ svg:'<path class="env" d="M96 78H120"/><circle class="hd" cx="56" cy="26" r="6.5"><animate attributeName="cx" values="56;76;56" dur="1s" repeatCount="indefinite"/><animate attributeName="cy" values="26;20;26" dur="0.5s" repeatCount="indefinite"/></circle><path class="ln" d="M56 33 56 56">'+anim('M56 33 56 56;M76 33 76 56;M56 33 56 56','1s')+'</path><path class="wk" d="M56 56 56 84 70 88">'+anim('M56 56 56 84 70 88;M76 56 76 84 90 88;M56 56 56 84 70 88','1s')+'</path><path class="ln" d="M56 56 78 66 96 76">'+anim('M56 56 78 66 96 76;M76 56 88 66 96 76;M56 56 78 66 96 76','1s')+'</path>'},
+
+{id:'staticlunge',g:'hip',name:'Static lunge hold',tgt:'Quads, glutes, isometric',dose:'4 × 30 s / side',
+ cue:'Drop into a lunge and hold there, front shin roughly vertical, back knee just off the floor. Still, no pulsing.',
+ why:'A calmer entry point than the split squat hold — a longer stance gives more margin for the front knee, useful earlier in a rehab progression.',
+ svg:FLOOR+'<circle class="hd" cx="60" cy="30" r="6.5"/><path class="ln" d="M60 37 60 58"/><path class="wk" d="M60 58 76 70 76 90"/><path class="ln" d="M60 58 40 74 34 90"/>'+HOLD},
+
+{id:'atgsplit',g:'knee',name:'ATG split squat',tgt:'Quads, deep-range strength',dose:'3 × 8 / side',
+ cue:'A split squat taken to the deepest range the ankle and knee allow, back knee brushing the floor. Elevate the front foot slightly if depth is limited by the ankle.',
+ why:'Deliberately trains the deep knee-flexion range most training avoids — the point isn\'t to go deep for its own sake, it\'s to make that range strong instead of avoided.',
+ svg:FLOOR+'<circle class="hd" cx="62" cy="30" r="6.5"><animate attributeName="cy" values="30;46;30" dur="3.4s" repeatCount="indefinite"/></circle><path class="ln" d="M62 37 62 60">'+anim('M62 37 62 60;M62 53 62 74;M62 37 62 60','3.4s')+'</path><path class="wk" d="M62 60 60 78 60 90">'+anim('M62 60 60 78 60 90;M62 74 58 86 60 90;M62 60 60 78 60 90','3.4s')+'</path><path class="ln" d="M62 60 84 72 88 88">'+anim('M62 60 84 72 88 88;M62 74 90 82 92 88;M62 60 84 72 88 88','3.4s')+'</path>'},
+
+{id:'soleuswalk',g:'ankle',name:'Soleus walk',tgt:'Soleus, calf endurance',dose:'3 × 20 m',
+ cue:'Walk with knees kept soft and bent throughout, staying high on the balls of the feet the whole way — never let the heels drop or the knees straighten.',
+ why:'The bent-knee position biases the soleus over the gastrocnemius, and doing it as a walk builds endurance in the muscle rather than just peak strength.',
+ svg:FLOOR+'<circle class="hd" cx="60" cy="30" r="6.5"><animate attributeName="cx" values="60;80;60" dur="2.2s" repeatCount="indefinite"/></circle><path class="ln" d="M60 37 60 58">'+anim('M60 37 60 58;M80 37 80 58;M60 37 60 58','2.2s')+'</path><path class="wk" d="M60 58 60 78 74 84">'+anim('M60 58 60 78 74 84;M80 58 80 78 94 84;M60 58 60 78 74 84','2.2s')+'</path>'}
+
 
 
 
@@ -1548,6 +1655,13 @@ frankenstein:[1,2],inchworm:[0,2],groiner:[1,3],armcircle:[0,0],
 sledpush:[2,2],renegaderow:[0,1],woodchop:[0,2],wallball:[2,2],
 bulgarianjump:[3,3]
 });
+Object.assign(LOAD,{
+sideskate:[2,3],curtsy:[2,3],latshuffle:[2,1],slpogo:[2,1],lungejump:[3,2],
+lungehighknee:[2,2],slhighjump:[3,3],bentkneecalf:[1,0],wallsitcalf:[2,0],splitsquatcalf:[2,0],
+quadtke:[2,0],bandreversenordic:[2,1],stepuptke:[2,1],gobletbox:[2,2],legextfull:[3,0],
+revstepdown:[3,1],plankleglift:[0,3],rfelateralpogo:[3,3],staticlunge:[2,3],atgsplit:[3,2],
+soleuswalk:[0,0]
+});
 const LOADLBL=['none','low','moderate','high'];
 /* an exercise also lands in Knee when it loads the knee moderately or more,
    and in Hip when it loads the hip heavily — plus a few added by hand */
@@ -1561,6 +1675,11 @@ function groupsOf(e){
  return g;
 }
 function inG(e,k){return groupsOf(e).indexOf(k)>=0;}
+function sortForFilter(items,filter){
+ if(filter==='knee')return items.slice().sort((a,b)=>(loadOf(b.id)[0]-loadOf(a.id)[0]));
+ if(filter==='hip')return items.slice().sort((a,b)=>(loadOf(b.id)[1]-loadOf(a.id)[1]));
+ return items.slice().sort((a,b)=>ORD[a.g]-ORD[b.g]);
+}
 function groupLabel(e){return groupsOf(e).map(function(k){return GLBL[k];}).join(' · ');}
 function loadOf(id){return LOAD[id]||[0,0];}
 function loadBar(id){
@@ -2239,7 +2358,7 @@ function renderPicker(){
  bar.innerHTML=GROUPS.map(g=>'<button data-pg="'+g.k+'" class="'+(pkFilter===g.k?'on':'')+'">'+g.l+'</button>').join('');
  bar.querySelectorAll('[data-pg]').forEach(b=>b.onclick=()=>{pkFilter=b.dataset.pg;renderPicker();});
  const sel=pkSelected();
- const items=KNEE.filter(k=>pkFilter==='all'||inG(k,pkFilter)).slice().sort((a,b)=>ORD[a.g]-ORD[b.g]);
+ const items=sortForFilter(KNEE.filter(k=>pkFilter==='all'||inG(k,pkFilter)),pkFilter);
  const grid=document.getElementById('pkgrid');
  grid.innerHTML=items.map(k=>{
   const on=sel.indexOf(k.id)>=0;
@@ -2587,7 +2706,7 @@ function renderLib(){
  const bar=document.getElementById('libbar');
  bar.innerHTML=GROUPS.map(g=>'<button data-g="'+g.k+'" class="'+(libFilter===g.k?'on':'')+'">'+g.l+'</button>').join('');
  bar.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{libFilter=b.dataset.g;renderLib();});
- const items=KNEE.filter(k=>libFilter==='all'||inG(k,libFilter)).slice().sort((a,b)=>ORD[a.g]-ORD[b.g]);
+ const items=sortForFilter(KNEE.filter(k=>libFilter==='all'||inG(k,libFilter)),libFilter);
  const lib=document.getElementById('lib');
  lib.innerHTML=items.map(k=>{
   const on=settings.circuit.indexOf(k.id)>=0;
