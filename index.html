@@ -157,21 +157,6 @@ body{background:var(--stock);color:var(--ink);font-family:'Archivo',system-ui,sa
 .pip:focus-visible{outline:2px solid var(--track);outline-offset:2px;}
 .rate-v{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-faint);}
 
-/* import */
-.imp{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center;}
-.imp label{border:1px solid var(--rule);border-radius:2px;background:var(--stock);padding:7px 11px;
-  font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
-  color:var(--ink-soft);cursor:pointer;}
-.imp label:hover{border-color:var(--ink);color:var(--ink);}
-.imp input[type=file]{position:absolute;width:1px;height:1px;opacity:0;}
-.imp-status{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-soft);}
-.imp-status.err{color:var(--t3);}
-.route{margin-top:11px;background:var(--stock);border:1px solid var(--rule);border-radius:2px;padding:10px;}
-.route svg{width:100%;height:150px;display:block;}
-.route-m{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;
-  font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-soft);}
-.route-m b{color:var(--ink);font-weight:500;}
-
 /* log */
 .log{margin-top:22px;}
 .log-label{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
@@ -531,6 +516,19 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
   .lib{grid-template-columns:repeat(4,1fr);}
   .pkgrid{grid-template-columns:repeat(5,1fr);}
 }
+
+/* export / import */
+.databar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 16px;
+  padding:9px 11px;background:var(--card);border:1px dashed var(--rule);border-radius:2px;}
+.databar button,.databar .import-lbl{background:var(--stock);border:1px solid var(--rule);border-radius:2px;
+  padding:7px 12px;font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-soft);cursor:pointer;position:relative;}
+.databar button:hover,.databar .import-lbl:hover{border-color:var(--ink);color:var(--ink);}
+.databar button:focus-visible,.databar .import-lbl:focus-within{outline:2px solid var(--track);outline-offset:2px;}
+.import-lbl input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;}
+.databar-status{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--ink-faint);}
+.databar-status.err{color:var(--t3);}
+.databar-status.ok{color:var(--t1);}
 </style>
 </head>
 <body>
@@ -575,6 +573,11 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
     <div class="lib" id="lib"></div>
   </div></div></section>
 
+  <div class="databar">
+    <button id="exportBtn">Export data</button>
+    <label class="import-lbl">Import data<input type="file" id="importInput" accept="application/json"></label>
+    <span class="databar-status" id="dataStatus"></span>
+  </div>
 
 </div>
 <div class="modal" id="picker" hidden role="dialog" aria-modal="true" aria-labelledby="pkTitle">
@@ -1628,44 +1631,6 @@ function fmtPace(p){
  return Math.floor(p/60)+':'+String(Math.round(p%60)).padStart(2,'0');
 }
 function paceOf(km,secs){return (km&&secs)?fmtPace(secs/km)+'/km':'—';}
-function parseTrack(text){
- const doc=new DOMParser().parseFromString(text,'application/xml');
- if(doc.getElementsByTagName('parsererror').length)throw new Error('Not a readable XML track file');
- let pts=[];
- const gp=doc.getElementsByTagName('trkpt');
- if(gp.length){for(const p of gp){const t=p.getElementsByTagName('time')[0];
-  pts.push({lat:+p.getAttribute('lat'),lon:+p.getAttribute('lon'),t:t?Date.parse(t.textContent):null});}}
- else{const tp=doc.getElementsByTagName('Trackpoint');
-  for(const p of tp){const la=p.getElementsByTagName('LatitudeDegrees')[0],
-   lo=p.getElementsByTagName('LongitudeDegrees')[0],t=p.getElementsByTagName('Time')[0];
-   if(la&&lo)pts.push({lat:+la.textContent,lon:+lo.textContent,t:t?Date.parse(t.textContent):null});}}
- if(pts.length<2)throw new Error('No GPS points found in that file');
- let m=0;for(let i=1;i<pts.length;i++)m+=hav(pts[i-1],pts[i]);
- const withT=pts.filter(p=>p.t);
- const secs=withT.length>1?Math.round((withT[withT.length-1].t-withT[0].t)/1000):null;
- const lats=pts.map(p=>p.lat);
- const kx=Math.cos(((Math.min(...lats)+Math.max(...lats))/2)*Math.PI/180);
- const xs=pts.map(p=>p.lon*kx),ys=pts.map(p=>-p.lat);
- const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
- const sp=Math.max(x1-x0,y1-y0)||1;
- const step=Math.max(1,Math.floor(pts.length/180));
- const path=[];
- for(let i=0;i<pts.length;i+=step)path.push([+(((xs[i]-x0)/sp).toFixed(4)),+(((ys[i]-y0)/sp).toFixed(4))]);
- return {km:+(m/1000).toFixed(2),secs:secs,path:path};
-}
-function toB64(f){return new Promise((res,rej)=>{const r=new FileReader();
- r.onload=()=>res(r.result.split(',')[1]);r.onerror=()=>rej(new Error('Could not read that file'));r.readAsDataURL(f);});}
-async function readShot(file){
- if(!SCREENSHOT_WORKER_URL) throw new Error('Screenshot reading isn\'t set up yet — add your Worker URL to SCREENSHOT_WORKER_URL.');
- const b64=await toB64(file);
- const r=await fetch(SCREENSHOT_WORKER_URL,{method:"POST",
-  headers:{"Content-Type":"application/json"},
-  body:JSON.stringify({image:b64, mediaType:file.type})});
- const data=await r.json();
- if(data.error)throw new Error(data.error.message||'Could not read the screenshot');
- const txt=data.content.filter(i=>i.type==='text').map(i=>i.text).join('');
- return JSON.parse(txt.replace(/```json|```/g,'').trim());
-}
 
 
 /* ═══ derived weekly scores ═══ */
@@ -1989,6 +1954,55 @@ function renderStats(){
   '<div class="spanel">'+(statTab==='week'?panelWeek():panelAll())+'</div></div>';
 }
 
+
+/* ═══ export / import ═══ */
+function exportData(){
+ const payload = {
+   app: 'sub20-tracker',
+   exportedAt: new Date().toISOString(),
+   state: state,
+   settings: settings
+ };
+ const blob = new Blob([JSON.stringify(payload, null, 1)], { type: 'application/json' });
+ const url = URL.createObjectURL(blob);
+ const a = document.createElement('a');
+ const stamp = new Date().toISOString().slice(0,10);
+ a.href = url;
+ a.download = 'sub20-backup-' + stamp + '.json';
+ document.body.appendChild(a);
+ a.click();
+ a.remove();
+ setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+async function importData(file){
+ const st = document.getElementById('dataStatus');
+ st.className = 'databar-status';
+ st.textContent = 'Reading ' + file.name + '…';
+ try {
+  const text = await file.text();
+  const payload = JSON.parse(text);
+  const incoming = payload.state || payload; // accept a raw state object too
+  if (!incoming || typeof incoming.weeks !== 'object') throw new Error('Not a recognised backup file');
+  const weekCount = Object.keys(incoming.weeks).length;
+  if (!confirm('Replace everything currently in the app with this backup (' + weekCount + ' week' + (weekCount===1?'':'s') + ' logged, exported ' + (payload.exportedAt ? payload.exportedAt.slice(0,10) : 'unknown date') + ')? This cannot be undone.')) {
+   st.textContent = '';
+   return;
+  }
+  state = incoming;
+  if (!state.total) state.total = 24;
+  if (!state.week) state.week = 1;
+  if (payload.settings && payload.settings.circuit) settings.circuit = payload.settings.circuit;
+  await save();
+  await saveSet();
+  renderAll();
+  st.className = 'databar-status ok';
+  st.textContent = 'Restored ' + weekCount + ' week' + (weekCount===1?'':'s') + '.';
+ } catch (e) {
+  st.className = 'databar-status err';
+  st.textContent = e.message || 'Could not read that file';
+ }
+}
+
 /* ═══ picker modal ═══ */
 function openPicker(mode,day){
  pkMode=mode;pkDay=day||null;pkFilter='all';
@@ -2206,30 +2220,6 @@ function bindWeek(app,d){
   d.res[p[0]][p[1]]=e.target.value;
   if(p[1]==='time'||p[1]==='dist')syncPace(d,p[0]);
   clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{await save();renderWeek();},900);});
- app.querySelectorAll('[data-track]').forEach(i=>i.onchange=async e=>{
-  const day=e.target.dataset.track,f=e.target.files[0];if(!f)return;
-  const st=document.getElementById('st-'+day);st.className='imp-status';st.textContent='Reading '+f.name+'…';
-  try{const r=parseTrack(await f.text());
-   d.route[day]={km:r.km,secs:r.secs,path:r.path};
-   if(!d.res[day])d.res[day]={};
-   d.res[day].dist=String(r.km);
-   if(r.secs)d.res[day].time=fmtDur(r.secs);
-   syncPace(d,day);
-   await save();renderWeek();
-  }catch(err){st.className='imp-status err';st.textContent=err.message;}});
- app.querySelectorAll('[data-shot]').forEach(i=>i.onchange=async e=>{
-  const day=e.target.dataset.shot,f=e.target.files[0];if(!f)return;
-  const st=document.getElementById('st-'+day);st.className='imp-status';st.textContent='Reading the screenshot…';
-  try{const r=await readShot(f);
-   if(!d.res[day])d.res[day]={};
-   if(r.distance_km!=null)d.res[day].dist=String(r.distance_km);
-   if(r.duration)d.res[day].time=r.duration;
-   if(r.avg_hr!=null)d.res[day].hr=String(r.avg_hr);
-   syncPace(d,day);
-   await save();renderWeek();
-   const s2=document.getElementById('st-'+day);
-   if(s2)s2.textContent='Filled from the screenshot — check the numbers';
-  }catch(err){st.className='imp-status err';st.textContent=err.message||'Could not read that image';}});
 }
 
 /* ═══ tape, circuit, library ═══ */
@@ -2303,6 +2293,12 @@ function renderAll(){
 (async function(){
  await load();
  state.week=weekOfToday();
+ document.getElementById('exportBtn').onclick = exportData;
+ document.getElementById('importInput').onchange = (e) => {
+  const f = e.target.files[0];
+  if (f) importData(f);
+  e.target.value = '';
+ };
  const lh=document.getElementById('libHead');
  if(lh)lh.onclick=()=>{panels.lib=!panels.lib;settings.panels=panels;saveSet();renderLibSection();};
  document.getElementById('pkClose').onclick=closePicker;
