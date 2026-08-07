@@ -132,7 +132,7 @@ body{background:var(--stock);color:var(--ink);font-family:'Archivo',system-ui,sa
 .tier-ext{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-faint);margin-top:6px;}
 .tier.on{border-color:var(--ink);border-left-width:3px;}
 .tier.on.t-1{border-left-color:var(--t1);} .tier.on.t-2{border-left-color:var(--t2);} .tier.on.t-3{border-left-color:var(--t3);}
-.tier:not(.on) .tier-struct,.tier:not(.on) .tier-ext{display:none;}
+.tier:not(.on):not(.tier-addbtn) .tier-struct,.tier:not(.on) .tier-ext{display:none;}
 
 /* result panel */
 .res{margin-top:12px;background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:12px;}
@@ -529,6 +529,61 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 .databar-status{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--ink-faint);}
 .databar-status.err{color:var(--t3);}
 .databar-status.ok{color:var(--t1);}
+
+/* per-day session picker */
+.ordersel{margin-top:6px;background:var(--card);border:1px solid var(--rule);border-radius:2px;
+  padding:5px 7px;font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.04em;
+  color:var(--ink-soft);cursor:pointer;max-width:170px;}
+.ordersel:hover{border-color:var(--ink-faint);}
+.ordersel:focus-visible{outline:2px solid var(--track);outline-offset:1px;}
+
+/* hardness levels — each level opens to show its session variants */
+.hardness{display:inline-block;font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.06em;
+  color:var(--ink-faint);margin-top:10px;margin-left:8px;vertical-align:middle;}
+.lvlgroup{border:1px solid var(--rule);border-radius:2px;background:var(--card);overflow:hidden;}
+.lvlgroup + .lvlgroup{margin-top:6px;}
+.lvlgroup.on{border-color:var(--ink);}
+.lvlhead{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;
+  background:none;border:none;padding:10px 12px;cursor:pointer;text-align:left;border-left-width:3px;
+  border-left-style:solid;border-left-color:transparent;}
+.lvlhead:hover{background:rgba(21,23,26,.03);}
+.lvlhead:focus-visible{outline:2px solid var(--track);outline-offset:-2px;}
+.lvlgroup.on .lvlhead{border-left-color:currentColor;}
+.lvlhead.t-1{color:var(--t1);} .lvlhead.t-2{color:var(--t2);} .lvlhead.t-3{color:var(--t3);}
+.lvlhead .tier-name{color:var(--ink);}
+.lvlhead.t-1 .tier-dot{background:var(--t1);}
+.lvlhead.t-2 .tier-dot{background:var(--t2);}
+.lvlhead.t-3 .tier-dot{background:var(--t3);}
+.lvlbody{padding:0 10px 10px;display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--rule);
+  padding-top:10px;margin:0 2px;}
+.variant{border:1px solid var(--rule);border-radius:2px;background:var(--stock);padding:9px 11px;
+  cursor:pointer;text-align:left;width:100%;}
+.variant:hover{border-color:var(--ink-faint);}
+.variant.on{border-color:var(--lane);border-left-width:3px;background:var(--card);}
+.variant:focus-visible{outline:2px solid var(--track);outline-offset:1px;}
+.variant-name{font-family:'Archivo',sans-serif;font-weight:600;font-size:12.5px;display:flex;
+  justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px;}
+.variant-name .tier-dur{font-family:'DM Mono',monospace;font-weight:400;font-size:10.5px;color:var(--ink-soft);}
+.variant .tier-struct{display:block!important;font-size:12.5px;color:var(--ink-soft);line-height:1.45;}
+.tier-mine{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-faint);background:var(--stock);border-radius:3px;padding:1px 5px;margin-left:2px;}
+.lvlhead .tier-mine{background:var(--card);}
+.tier-del{display:inline-block;margin-top:8px;font-family:'DM Mono',monospace;font-size:10px;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--t3);cursor:pointer;}
+.tier-del:hover{text-decoration:underline;}
+.addvariant{width:100%;background:none;border:1px dashed var(--rule);border-radius:2px;padding:9px;
+  font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.07em;color:var(--ink-faint);cursor:pointer;}
+.addvariant:hover{border-color:var(--lane);color:var(--lane);}
+.tier-add{background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:11px;
+  display:flex;flex-direction:column;gap:7px;}
+.tier-add input,.tier-add textarea{background:var(--stock);border:1px solid var(--rule);border-radius:2px;
+  padding:8px 9px;font-family:'Archivo',sans-serif;font-size:13px;color:var(--ink);width:100%;}
+.tier-add textarea{min-height:64px;resize:vertical;font-family:'DM Mono',monospace;font-size:12px;}
+.tier-add input:focus,.tier-add textarea:focus{outline:2px solid var(--track);outline-offset:-1px;}
+.tier-add-row{display:flex;gap:8px;}
+.tier-add-cancel{background:none;border:1px solid var(--rule);border-radius:2px;padding:8px 13px;
+  font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-faint);cursor:pointer;}
 </style>
 </head>
 <body>
@@ -1380,7 +1435,56 @@ const KNEE=[
 {id:'tgu',g:'run',name:'Turkish get-up',tgt:'Whole body, control',dose:'3 × 3 / side',
  cue:'From lying to standing with a weight locked overhead, one deliberate step at a time, then reverse it. Start with no weight at all.',
  why:'Slow full-body control through every position between the floor and standing. Nothing else in the list covers this much range at once.',
- svg:FLOOR+'<circle class="hd" cx="34" cy="72" r="6"><animate attributeName="cx" values="34;56;34" dur="3.8s" repeatCount="indefinite"/><animate attributeName="cy" values="72;34;72" dur="3.8s" repeatCount="indefinite"/></circle><path class="wk" d="M40 76 76 82">'+anim('M40 76 76 82;M58 41 66 74;M40 76 76 82','3.8s')+'</path><path class="ln" d="M40 70 44 50">'+anim('M40 70 44 50;M60 34 64 16;M40 70 44 50','3.8s')+'</path><path class="ln" d="M76 82 96 88">'+anim('M76 82 96 88;M66 74 74 90;M76 82 96 88','3.8s')+'</path>'}
+ svg:FLOOR+'<circle class="hd" cx="34" cy="72" r="6"><animate attributeName="cx" values="34;56;34" dur="3.8s" repeatCount="indefinite"/><animate attributeName="cy" values="72;34;72" dur="3.8s" repeatCount="indefinite"/></circle><path class="wk" d="M40 76 76 82">'+anim('M40 76 76 82;M58 41 66 74;M40 76 76 82','3.8s')+'</path><path class="ln" d="M40 70 44 50">'+anim('M40 70 44 50;M60 34 64 16;M40 70 44 50','3.8s')+'</path><path class="ln" d="M76 82 96 88">'+anim('M76 82 96 88;M66 74 74 90;M76 82 96 88','3.8s')+'</path>'},
+
+/* ══ warm-up, added ══ */
+{id:'frankenstein',g:'warm',name:'Frankenstein walk',tgt:'Hamstrings, hip flexors',dose:'2 × 20 m',
+ cue:'Walk forward kicking one straight leg up toward the opposite hand at hip height, alternating sides. Stiff-legged, controlled — not a kick for height.',
+ why:'A classic pre-run drill for a reason: it stretches the hamstring dynamically while raising heart rate, which a static hamstring stretch cannot do at the same time.',
+ svg:FLOOR+'<circle class="hd" cx="60" cy="24" r="6.5"><animate attributeName="cx" values="60;76;60" dur="1.8s" repeatCount="indefinite"/></circle><path class="ln" d="M60 31 60 54">'+anim('M60 31 60 54;M76 31 76 54;M60 31 60 54','1.8s')+'</path><path class="wk" d="M60 54 82 60 92 44">'+anim('M60 54 82 60 92 44;M76 54 60 62 46 50;M60 54 82 60 92 44','1.8s')+'</path>'},
+
+{id:'inchworm',g:'warm',name:'Inchworm',tgt:'Hamstrings, shoulders, core',dose:'2 × 8',
+ cue:'Hinge forward and walk the hands out to a high plank, hold for a beat, then walk the feet up to meet the hands and stand tall.',
+ why:'Combines a hamstring stretch with a shoulder and core wake-up in one movement — useful right before strides or a speed session.',
+ svg:FLOOR+'<circle class="hd" cx="30" cy="80" r="6.5"><animate attributeName="cx" values="30;70;30" keyTimes="0;0.5;1" dur="3.2s" repeatCount="indefinite"/><animate attributeName="cy" values="80;62;80" keyTimes="0;0.5;1" dur="3.2s" repeatCount="indefinite"/></circle><path class="wk" d="M36 84 96 84">'+anim('M36 84 96 84;M76 66 96 84;M36 84 96 84','3.2s','0;0.5;1')+'</path>'},
+
+{id:'groiner',g:'warm',name:'Groiner',tgt:'Hips, groin, thoracic spine',dose:'2 × 8 / side',
+ cue:'From a high plank, step one foot outside the same-side hand into a deep lunge, reach that arm to the ceiling and rotate the chest open, then step back and switch.',
+ why:'Opens the hip and the thoracic spine in the same rep — a lot of range covered for one movement, and a good primer right before hill sprints or speed work.',
+ svg:FLOOR+'<circle class="hd" cx="28" cy="72" r="6"/><path class="ln" d="M34 76 78 78"/><path class="ln" d="M38 78 38 90"/><path class="wk" d="M78 78 96 90 100 66">'+anim('M78 78 96 90 100 66;M78 78 60 88 44 72;M78 78 96 90 100 66','2.6s')+'</path>'},
+
+{id:'armcircle',g:'warm',name:'Arm circles',tgt:'Shoulders, upper back',dose:'2 × 15 each way',
+ cue:'Arms straight out to the sides, small circles growing to large ones, then reverse direction.',
+ why:'Arm swing drives a good chunk of running rhythm and cadence. Cold shoulders tend to tighten up and shorten the swing without you noticing.',
+ svg:FLOOR+'<circle class="hd" cx="70" cy="26" r="6.5"/><path class="ln" d="M70 33 70 58"/><path class="ln" d="M70 58 66 76 66 90"/><path class="ln" d="M70 58 74 76 74 90"/><path class="wk" d="M70 42 96 42">'+anim('M70 42 96 42;M70 42 70 16;M70 42 44 42;M70 42 70 68;M70 42 96 42','2.4s','0;0.25;0.5;0.75;1')+'</path>'},
+
+/* ══ runner essentials, added ══ */
+{id:'sledpush',g:'run',name:'Sled push',tgt:'Full-leg power, posture',dose:'4 × 20 m',
+ cue:'Arms extended or elbows driven back, lean into it, drive through the whole foot with short powerful steps.',
+ why:'Pure horizontal force production with almost no eccentric loading, which makes it one of the safer ways to build the power that translates to faster running.',
+ svg:FLOOR+'<path class="env" d="M96 66H124 M96 66V90 M124 66V90"/><circle class="hd" cx="62" cy="30" r="6.5"><animate attributeName="cy" values="30;40;30" dur="2.4s" repeatCount="indefinite"/></circle><path class="ln" d="M62 37 62 58">'+anim('M62 37 62 58;M62 45 62 64','2.4s')+'</path><path class="wk" d="M62 58 82 66 96 66">'+anim('M62 58 82 66 96 66;M62 64 82 66 96 66','2.4s')+'</path>'},
+
+{id:'renegaderow',g:'run',name:'Renegade row',tgt:'Trunk, anti-rotation, back',dose:'3 × 8 / side',
+ cue:'High plank on dumbbells, feet wide for stability, row one weight to the ribs without letting the hips rotate.',
+ why:'Trunk stability under a rowing load — resisting rotation here is the same job the trunk does resisting the twist of every stride.',
+ svg:FLOOR+'<circle class="hd" cx="26" cy="66" r="6"/><path class="wk" d="M32 70 90 78"/><path class="ln" d="M40 72 36 90"/><path class="ln" d="M84 78 88 90"/><path class="wk" d="M60 76 60 58 76 60">'+anim('M60 76 60 58 76 60;M60 76 60 76 90 78;M60 76 60 58 76 60','2.6s')+'</path>'},
+
+{id:'woodchop',g:'run',name:'Cable woodchopper',tgt:'Trunk rotation, power',dose:'3 × 10 / side',
+ cue:'Cable or band anchored high, pull it diagonally down across the body, pivoting the back foot. Controlled, not a yank.',
+ why:'The rotational counterpart to the Pallof press — that one resists rotation, this one produces it, and running benefits from both.',
+ svg:FLOOR+'<circle class="hd" cx="60" cy="24" r="6.5"/><path class="ln" d="M60 31 62 56"/><path class="ln" d="M62 56 54 74 54 90"/><path class="ln" d="M62 56 72 74 74 90"/><path class="wk" d="M60 34 96 30">'+anim('M60 34 96 30;M60 34 34 76','2s')+'</path>'},
+
+{id:'wallball',g:'run',name:'Wall ball',tgt:'Legs, trunk, conditioning',dose:'3 × 12',
+ cue:'Squat down with the ball at the chest, drive up and throw it against a wall target, catch it on the way down and go straight into the next squat.',
+ why:'Combines a loaded squat with a throw and a conditioning element — a lot of the demands of a hard race in one repeatable movement.',
+ svg:FLOOR+'<circle class="hd" cx="66" cy="26" r="6.5"><animate attributeName="cy" values="26;38;26" dur="2s" repeatCount="indefinite"/></circle><path class="ln" d="M66 33 66 56">'+anim('M66 33 66 56;M66 47 66 68','2s')+'</path><path class="wk" d="M66 56 80 68 80 90">'+anim('M66 56 80 68 80 90;M66 68 84 78 84 90','2s')+'</path><path class="wk" d="M66 56 52 68 52 90">'+anim('M66 56 52 68 52 90;M66 68 48 78 48 90','2s')+'</path><path class="env" d="M120 16V90"/><circle class="env" cx="66" cy="30" r="6" fill="none"><animate attributeName="cy" values="30;10;30" dur="2s" repeatCount="indefinite"/></circle>'},
+
+/* ══ knee, added ══ */
+{id:'bulgarianjump',g:'knee',name:'Bulgarian split squat jump',tgt:'Quads, glutes, single-leg power',dose:'3 × 6 / leg',
+ cue:'Rear foot on a bench as in a normal Bulgarian split squat, but drive up into a small jump on the front leg, landing soft back into the same position.',
+ why:'The explosive version of the Bulgarian split squat — single-leg power in exactly the position running loads the front leg. Demanding: only add it once the strength version feels easy.',
+ svg:FLOOR+'<path class="env" d="M96 72H124 M110 72V88"/><circle class="hd" cx="62" cy="20" r="6.5"><animate attributeName="cy" values="20;38;16;38;20" keyTimes="0;0.3;0.5;0.7;1" dur="2.6s" repeatCount="indefinite"/></circle><path class="ln" d="M62 27 62 50">'+anim('M62 27 62 50;M62 45 62 66;M62 23 62 46;M62 45 62 66;M62 27 62 50','2.6s','0;0.3;0.5;0.7;1')+'</path><path class="wk" d="M62 50 54 68 54 90">'+anim('M62 50 54 68 54 90;M62 66 50 80 54 90;M62 46 54 64 54 90;M62 66 50 80 54 90;M62 50 54 68 54 90','2.6s','0;0.3;0.5;0.7;1')+'</path>'}
+
 
 
 
@@ -1421,6 +1525,11 @@ Object.assign(LOAD,{
 backwardwalk:[2,1],revstepup:[3,2],isoleghold:[3,0],
 cossack:[2,3],standhydrant:[1,3],frogstretch:[0,3],
 medball:[0,2],bearcrawl:[0,1],tgu:[1,2]
+});
+Object.assign(LOAD,{
+frankenstein:[1,2],inchworm:[0,2],groiner:[1,3],armcircle:[0,0],
+sledpush:[2,2],renegaderow:[0,1],woodchop:[0,2],wallball:[2,2],
+bulgarianjump:[3,3]
 });
 const LOADLBL=['none','low','moderate','high'];
 /* an exercise also lands in Knee when it loads the knee moderately or more,
@@ -1475,15 +1584,49 @@ const INTERVAL=[
 
 const CORE=['mon','tue','wed','thu','fri','sat','sun'];
 const DAYLBL={mon:'Mon',tue:'Tue',wed:'Wed',thu:'Thu',fri:'Fri',sat:'Sat',sun:'Sun'};
-const KNEEDAYS=['mon','tue','thu','sat'];
-const RUNDAYS=['mon','wed','sat'];
-const GYMDAYS=['tue','thu','fri'];
 const MUSC={chest:'Chest',shoulders:'Shoulders',back:'Back',biceps:'Biceps',triceps:'Triceps',legs:'Legs'};
 const START=new Date(2026,7,10), KEY='sub20_v2', SET='sub20_settings';
 
-let state={week:1,total:24,weeks:{}}, settings={circuit:['clam','stepdown','calf','tke']};
+/* the seven sessions a week must contain, exactly once each — which weekday
+   holds which one is entirely up to you, and can change week to week */
+const DEFAULT_ORDER=['push','easy','pull','speed','full','long','rest'];
+const KNEE_TYPES=['push','pull','easy'];
+function slotOf(d,type){
+ const order=(d&&d.order)||DEFAULT_ORDER;
+ const i=order.indexOf(type);
+ return i>=0?CORE[i]:null;
+}
+function typeAt(d,dayId){
+ const order=(d&&d.order)||DEFAULT_ORDER;
+ return order[CORE.indexOf(dayId)];
+}
+function swapType(d,dayId,newType){
+ if(!d.order)d.order=DEFAULT_ORDER.slice();
+ const idx=CORE.indexOf(dayId);
+ const oldType=d.order[idx];
+ if(oldType===newType)return;
+ const otherIdx=d.order.indexOf(newType);
+ d.order[idx]=newType;
+ if(otherIdx>=0)d.order[otherIdx]=oldType;
+}
+const ORDEROPTS=[['push','Push'],['pull','Pull + legs'],['full','Full body'],['easy','Easy run'],
+ ['speed','Speed'],['long','Long run'],['race','5K'],['football','Football'],['rest','Rest']];
+function orderSelect(d,w,dayId,type){
+ let display=type;
+ if(type==='long'){
+  const raceWeek=(w===state.total);
+  display=raceWeek?'race':(d.satMode==='football'?'football':(d.satMode==='race'?'race':'long'));
+ }
+ return '<select class="ordersel" data-ord="'+dayId+'" aria-label="Change '+DAYLBL[dayId]+'\'s session">'+
+  ORDEROPTS.map(o=>'<option value="'+o[0]+'"'+(o[0]===display?' selected':'')+'>'+o[1]+'</option>').join('')+
+  '</select>';
+}
+
+let state={week:1,total:24,weeks:{}}, settings={circuit:['clam','stepdown','calf','tke'],customTiers:{tempo:[],interval:[]}};
 let saveTimer=null, libFilter='all', pkFilter='all', pkMode=null, pkDay=null, statTab='week';
 let panels={days:true,rate:false,stats:false,lib:false};
+let customForm=null; // 'tempo' | 'interval' | null — which add-a-session form is open
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function acc(key,title,meta,body,done){
  const on=!!panels[key];
  return '<section class="acc'+(on?' on':'')+(done?' done':'')+'"><button class="acc-h" data-acc="'+key+'" aria-expanded="'+on+'">'+
@@ -1524,16 +1667,18 @@ async function load(){
   state.week=p.week||1;state.total=p.total||24;state.weeks=p.weeks||{};}}catch(e){}
  try{const r=await window.storage.get(SET);if(r&&r.value){const p=JSON.parse(r.value);
   if(p.circuit)settings.circuit=p.circuit;
+  if(p.customTiers)settings.customTiers=p.customTiers;
   if(p.panels)panels=Object.assign(panels,p.panels);}}catch(e){}
 }
 async function save(){try{await window.storage.set(KEY,JSON.stringify(state));}catch(e){console.error(e);}}
 async function saveSet(){try{await window.storage.set(SET,JSON.stringify(settings));}catch(e){console.error(e);}}
 
 function wk(w){
- if(!state.weeks[w])state.weeks[w]={days:{},wedType:(w%2===1?'tempo':'interval'),tier:'medium',
+ if(!state.weeks[w])state.weeks[w]={days:{},order:DEFAULT_ORDER.slice(),wedType:(w%2===1?'tempo':'interval'),tier:'medium',
    res:{},rate:{},route:{},knee:{},open:{}};
  const d=state.weeks[w];
  ['res','rate','route','knee','open','days'].forEach(k=>{if(!d[k])d[k]={};});
+ if(!d.order||d.order.length!==7)d.order=DEFAULT_ORDER.slice();
  if(!d.wedType)d.wedType=(w%2===1?'tempo':'interval');
  if(!d.tier)d.tier='medium';
  return d;
@@ -1641,10 +1786,11 @@ function autoRate(w){
  const days=d.days||{},res=d.res||{};
  const clamp=x=>Math.max(1,Math.min(5,x));
 
- // easy running — Monday
- if(!days.mon){v.easy=0;why.easy='not run';}
+ // easy running — wherever it landed this week
+ const easyDay=slotOf(d,'easy');
+ if(!easyDay||!days[easyDay]){v.easy=0;why.easy='not run';}
  else{
-  let s=3;const r=res.mon||{},km=parseFloat(r.dist),t=parseHMS(r.time);const b=[];
+  let s=3;const r=res[easyDay]||{},km=parseFloat(r.dist),t=parseHMS(r.time);const b=[];
   if(km>0){if(km>=5.0&&km<=8.0){s++;b.push('inside the range');}
    else if(km<5.0)b.push('under the range');else b.push('over the range');}
   if(km>0&&t>0){const p=t/km;
@@ -1655,21 +1801,23 @@ function autoRate(w){
   v.easy=clamp(s);why.easy=b.join(' · ');
  }
 
- // strength — Tue, Thu, Fri
- const gym=GYMDAYS.filter(k=>days[k]).length;
+ // strength — the three gym sessions, wherever they landed
+ const gymDays=['push','pull','full'].map(t=>slotOf(d,t)).filter(Boolean);
+ const gym=gymDays.filter(k=>days[k]).length;
  if(!gym){v.strength=0;why.strength='no gym days';}
  else{
   let s=[0,2,4,5][gym];
-  let sets=0;GYMDAYS.forEach(k=>{sets+=parseFloat((res[k]||{}).sets)||0;});
+  let sets=0;gymDays.forEach(k=>{sets+=parseFloat((res[k]||{}).sets)||0;});
   const b=[gym+' of 3 days'];
   if(sets>0){b.push(sets+' sets');if(sets<12&&gym>1){s--;b.push('light volume');}}
   v.strength=clamp(s);why.strength=b.join(' · ');
  }
 
- // the Wednesday session
- if(!days.wed){v.speed=0;why.speed='not run';}
+ // the speed session
+ const speedDay=slotOf(d,'speed');
+ if(!speedDay||!days[speedDay]){v.speed=0;why.speed='not run';}
  else if(d.wedType==='easy'){
-  let s=3;const r=res.wed||{},t=parseHMS(r.time),km=parseFloat(r.dist);const b=['swapped for an easy run'];
+  let s=3;const r=res[speedDay]||{},t=parseHMS(r.time),km=parseFloat(r.dist);const b=['swapped for an easy run'];
   if(km>0&&km>=5.0&&km<=8.0)s++;
   if(km>0&&t>0){const p=t/km;
    if(p>=345&&p<=360){s++;b.push('kept it easy');}
@@ -1677,7 +1825,7 @@ function autoRate(w){
   v.speed=clamp(s);why.speed=b.join(' · ');
  }
  else{
-  let s=3;const r=res.wed||{},t=parseHMS(r.time),km=parseFloat(r.dist);const b=[];
+  let s=3;const r=res[speedDay]||{},t=parseHMS(r.time),km=parseFloat(r.dist);const b=[];
   const mins=(d.wedType==='tempo'?{easy:32,medium:36,hard:39}:{easy:30,medium:34,hard:38})[d.tier||'medium'];
   const target=mins*60;
   if(t>0){
@@ -1692,18 +1840,25 @@ function autoRate(w){
   v.speed=clamp(s);why.speed=b.join(' · ');
  }
 
- // long run — Saturday
+ // long run
+ const longDay=slotOf(d,'long');
  const raceSat=(w===state.total)||d.satMode==='race';
- if(!days.sat){v.long=0;why.long='not run';}
+ const footballSat=(w!==state.total)&&d.satMode==='football';
+ if(!longDay||!days[longDay]){v.long=0;why.long='not run';}
  else if(raceSat){
-  let s=4;const r=res.sat||{},t=parseHMS(r.time);const b=['time trial run'];
+  let s=4;const r=res[longDay]||{},t=parseHMS(r.time);const b=['time trial run'];
   if(t>0){if(t<1199){s=5;b.push('under 20:00');}
    else if(t<1360){s=5;b.push('faster than the 22:40 baseline');}
    else b.push('slower than baseline');}
   v.long=clamp(s);why.long=b.join(' · ');
  }
+ else if(footballSat){
+  let s=4;const r=res[longDay]||{},t=parseHMS(r.time);const b=['football match'];
+  if(t>0){if(Math.abs(t-5400)<=900){s=5;b.push('close to a full 90');}else b.push('shorter than a full match');}
+  v.long=clamp(s);why.long=b.join(' · ');
+ }
  else{
-  let s=3;const r=res.sat||{},km=parseFloat(r.dist),t=parseHMS(r.time);const b=[];
+  let s=3;const r=res[longDay]||{},km=parseFloat(r.dist),t=parseHMS(r.time);const b=[];
   if(km>0){if(km>=9.0&&km<=20.0){s++;b.push('inside the range');}
    else if(km<9.0){s--;b.push('under the range');}else b.push('over the range');}
   if(km>0&&t>0){const p=t/km;
@@ -1714,9 +1869,10 @@ function autoRate(w){
   v.long=clamp(s);why.long=b.join(' · ');
  }
 
- // rest — Sunday
- const load=CORE.filter(k=>days[k]&&k!=='sun').length;
- if(days.sun){v.rest=5;why.rest='rest day taken';}
+ // rest — wherever you put it
+ const restDay=slotOf(d,'rest');
+ const load=CORE.filter(k=>days[k]&&k!==restDay).length;
+ if(restDay&&days[restDay]){v.rest=5;why.rest='rest day taken';}
  else if(load>=5){v.rest=2;why.rest='no rest after a full week';}
  else if(load>0){v.rest=3;why.rest='no rest logged';}
  else{v.rest=0;why.rest='nothing logged';}
@@ -1731,22 +1887,34 @@ function autoRate(w){
 }
 
 /* ═══ aggregation ═══ */
+function hardnessOf(d){
+ if(d.tier==='easy'||d.tier==='medium'||d.tier==='hard')return d.tier;
+ const pool=(settings.customTiers.tempo||[]).concat(settings.customTiers.interval||[]);
+ const f=pool.find(c=>c.id===d.tier);
+ return f?(f.lvl||'medium'):'medium';
+}
+const HARDLBL={easy:'Steady',medium:'Standard',hard:'Peak'};
 function weekAgg(w){
  const d=state.weeks[w]||{};
  const res=d.res||{},days=d.days||{},knee=d.knee||{};
  const rate=autoRate(w).v;
  let km=0,secs=0,runs=0,longest=0,fastest=null;
  const kmType={easy:0,speed:0,long:0};
- RUNDAYS.forEach(k=>{
+ ['easy','speed','long'].forEach(type=>{
+  const k=slotOf(d,type);if(!k)return;
   const r=res[k];if(!r)return;
   const v=parseFloat(r.dist)||0,t=parseHMS(r.time);
   if(v>0){km+=v;runs++;if(v>longest)longest=v;
-   kmType[k==='mon'?'easy':(k==='wed'?((d.wedType==='easy')?'easy':'speed'):'long')]+=v;
+   let bucket=type;
+   if(type==='speed'&&d.wedType==='easy')bucket='easy';
+   if(type==='long'&&d.satMode==='football')bucket=(v<9.0?'easy':'long');
+   kmType[bucket]+=v;
    if(t>0){const p=t/v;if(fastest===null||p<fastest)fastest=p;}}
   secs+=t;
  });
  let sets=0;const muscles={};
- GYMDAYS.forEach(k=>{
+ const gymDays=['push','pull','full'].map(t=>slotOf(d,t)).filter(Boolean);
+ gymDays.forEach(k=>{
   const r=res[k];if(!r)return;
   sets+=parseFloat(r.sets)||0;
   Object.keys(MUSC).forEach(f=>{const n=parseFloat(r[f]);if(!isNaN(n)&&n>0)muscles[f]=(muscles[f]||0)+n;});
@@ -1762,21 +1930,24 @@ function weekAgg(w){
   n+=other;exs+=n;
   if(n>0){circuits++;kneeDay[day]=true;}
  });
+ const speedDay=slotOf(d,'speed');
+ const hardness=(speedDay&&days[speedDay]&&(d.wedType!=='easy'))?hardnessOf(d):null;
  return {w:w,km:km,secs:secs,runs:runs,kmType:kmType,longest:longest,fastest:fastest,
   sets:sets,muscles:muscles,exCount:exCount,groupCount:groupCount,exs:exs,circuits:circuits,
-  warm:warm,cool:cool,sessions:CORE.filter(k=>days[k]).length,
-  strSess:GYMDAYS.filter(k=>days[k]).length,kneeDay:kneeDay,days:days,rate:rate,full:weekDone(w)};
+  warm:warm,cool:cool,sessions:CORE.filter(k=>days[k]).length,hardness:hardness,
+  strSess:gymDays.filter(k=>days[k]).length,kneeDay:kneeDay,days:days,rate:rate,full:weekDone(w)};
 }
 function agg(from,to){
  const o={km:0,secs:0,runs:0,longest:0,fastest:null,sets:0,exs:0,circuits:0,warm:0,cool:0,
   sessions:0,strSess:0,full:0,kmType:{easy:0,speed:0,long:0},muscles:{},exCount:{},groupCount:{},
-  rate:{},rateN:{},weeks:[]};
+  hardness:{easy:0,medium:0,hard:0},rate:{},rateN:{},weeks:[]};
  for(let w=from;w<=to;w++){
   const a=weekAgg(w);o.weeks.push(a);
   o.km+=a.km;o.secs+=a.secs;o.runs+=a.runs;o.sets+=a.sets;o.exs+=a.exs;o.circuits+=a.circuits;
   o.warm+=a.warm;o.cool+=a.cool;o.sessions+=a.sessions;o.strSess+=a.strSess;if(a.full)o.full++;
   if(a.longest>o.longest)o.longest=a.longest;
   if(a.fastest!==null&&(o.fastest===null||a.fastest<o.fastest))o.fastest=a.fastest;
+  if(a.hardness)o.hardness[a.hardness]++;
   ['easy','speed','long'].forEach(k=>o.kmType[k]+=a.kmType[k]);
   Object.keys(a.muscles).forEach(k=>o.muscles[k]=(o.muscles[k]||0)+a.muscles[k]);
   Object.keys(a.exCount).forEach(k=>o.exCount[k]=(o.exCount[k]||0)+a.exCount[k]);
@@ -1893,13 +2064,16 @@ function kneeIntensityRows(exCount){
 }
 function panelWeek(){
  const w=state.week,a=agg(w,w);
+ const HCOL={easy:'var(--t1)',medium:'var(--t2)',hard:'var(--t3)'};
+ const hardVal=a.hardness?'<span style="color:'+HCOL[a.hardness]+'">'+HARDLBL[a.hardness]+'</span>':'—';
  let h=bigRow([
   big('Distance',a.km.toFixed(1),'km'),
   big('Time',fmtDur(a.secs),'on feet'),
   big('Avg pace',a.pace?fmtPace(a.pace):'—','per km'),
   big('Sessions',a.sessions+'<span class="of">/7</span>','ticked'),
   big('Longest',a.longest?a.longest.toFixed(1):'—','km'),
-  big('Fastest',a.fastest?fmtPace(a.fastest):'—','per km')
+  big('Fastest',a.fastest?fmtPace(a.fastest):'—','per km'),
+  big('Hardness',hardVal,'this week')
  ]);
  h+=sec('Distance by session',hbar([
   {l:'Easy',v:+a.kmType.easy.toFixed(1),c:'var(--t1)'},
@@ -1936,6 +2110,10 @@ function panelAll(){
   {l:'Long',v:+a.kmType.long.toFixed(1),c:'var(--lane)'}],' km'),'kilometres run');
  h+=sec('Strength volume per week',vbar(ws.map(x=>({l:x.w,v:x.sets,cur:x.w===w})),'','var(--lane)'),'sets · bar = one week');
  h+=sec('Strength by muscle group',hbar(muscleRows(a.muscles),' ex','var(--lane)'),'exercises logged');
+ h+=sec('Speed sessions by level',hbar([
+  {l:'Steady',v:a.hardness.easy,c:'var(--t1)'},
+  {l:'Standard',v:a.hardness.medium,c:'var(--t2)'},
+  {l:'Peak',v:a.hardness.hard,c:'var(--t3)'}],' wks'),'weeks at each level');
  h+=sec('Knee work',bigRow([
   big('Circuits',a.circuits,'total'),
   big('Exercises',a.exs,'logged')
@@ -2088,12 +2266,53 @@ function weekCtl(w){
   '<button data-del="'+w+'"'+(state.total<=24?' disabled':'')+'>Remove this week</button>'+
   '<span class="note">'+(extra>0?'+'+extra+' added · race '+raceDate():'race '+raceDate())+'</span></div>';
 }
+function daySpec(d,w,type){
+ if(type==='push')return {t:'Strength — push',k:'gym',det:'Chest, shoulders, triceps',
+   res:{f:[['chest','Chest'],['shoulders','Shoulders'],['triceps','Triceps'],['sets','Total sets']]}};
+ if(type==='pull')return {t:'Strength — pull and legs',k:'gym',
+   det:'Back, biceps, posterior chain — RDLs, hip thrusts, leg curls',
+   res:{f:[['back','Back'],['biceps','Biceps'],['legs','Legs'],['sets','Total sets']]}};
+ if(type==='full')return {t:'Strength — full body',k:'gym',
+   det:'Every muscle group gets a touch — moderate leg load, so the long run day still has something to work with',
+   res:{f:[['chest','Chest'],['shoulders','Shoulders'],['triceps','Triceps'],['back','Back'],['biceps','Biceps'],['legs','Legs'],['sets','Total sets']]}};
+ if(type==='easy')return {t:'Easy run',k:'run',
+   det:'<span class="num">5.0–8.0 km</span> in <span class="num">30–55 min</span> at 5:45–6:00/km. Pick the length on the day.',
+   res:{f:[['time','Time','text','30:00'],['dist','Distance km','text','5.0'],['pace','Avg pace','text','5:52'],['hr','Avg HR']]}};
+ if(type==='speed'){
+  const wmode=d.wedType||'tempo',tempo=wmode==='tempo',bail=wmode==='easy';
+  return {t:bail?'Easy run':(tempo?'Tempo':'Intervals'),k:bail?'run':'speed',
+   det:bail
+     ?'Legs are flat, so today is aerobic only. <span class="num">5.0–8.0 km</span> at <span class="num">5:45–6:00/km</span>, conversational the whole way. A skipped quality session costs less than a bad one.'
+     :'Choose the session, then the tier that fits how the legs feel. Thirty to forty minutes, door to door.',
+   speed:true,res:{f:[['time','Total time','text','36:00'],['dist','Distance km','text','7.6'],['pace','Avg pace','text','4:45'],['hr','Avg HR']]}};
+ }
+ if(type==='long'){
+  const raceWeek=(w===state.total);
+  const mode=raceWeek?'race':satMode(w);
+  if(mode==='race')return {t:raceWeek?'Race — sub-20 attempt':'5 km time trial',k:'race',
+   det:'10 min warm-up and drills → <span class="num">5 km flat out</span>, target <span class="num">3:59/km</span> → 10 min cool-down',
+   race:true,
+   res:{f:[['time','Time','text','21:40'],['dist','Distance km','text','5.00'],['pace','Avg pace','text','4:20'],['hr','Avg HR']]}};
+  if(mode==='football')return {t:'Football match',k:'match',
+   det:'Ninety minutes on your feet counts as the week\'s long effort — <span class="num">time and distance</span> in place of a pace target. Log what the watch says.',
+   res:{f:[['time','Time','text','90:00'],['dist','Distance km','text','8.0'],['hr','Avg HR']]}};
+  return {t:'Long run',k:'run',
+   det:'Run the clock, not the tape measure.'+
+    '<div class="satrange">'+
+    '<span class="c"><span class="k">Duration</span><span class="v">1:00–1:30</span><span class="n">h:mm</span></span>'+
+    '<span class="c"><span class="k">Distance</span><span class="v">9–20</span><span class="n">km</span></span>'+
+    '<span class="c"><span class="k">Pace</span><span class="v">5:50–6:10</span><span class="n">/km</span></span></div>'+
+    '<p class="satnote">Fresh legs go long, heavy legs go short — neither is a failed session. Just don\'t sit at the bottom two weeks running.</p>',
+   res:{f:[['time','Time','text','58:20'],['dist','Distance km','text','10.1'],['pace','Avg pace','text','5:58'],['hr','Avg HR']]}};
+ }
+ return {t:'Rest',k:'off',det:'Nothing. Eat, drink, sleep.',rest:true};
+}
+
 function renderWeek(){
  const w=state.week,d=wk(w),race=(w===state.total);
  const wmode=d.wedType||'tempo';
  const tempo=wmode==='tempo';
  const bail=wmode==='easy';
- const isRace=satMode(w)==='race';
  const tiers=tempo?TEMPO:INTERVAL;
  const nCirc=settings.circuit.length;
 
@@ -2102,69 +2321,61 @@ function renderWeek(){
   (weekDone(w)?'<div class="week-flag done">Week complete</div>':(race?'<div class="week-flag">Race week</div>':''))+'</div>'+weekCtl(w);
  let daysHtml='<div class="days">';
 
- const D=[
-  {id:'mon',tag:'Mon',t:'Easy run',k:'run',
-   det:'<span class="num">5.0–8.0 km</span> in <span class="num">30–55 min</span> at 5:45–6:00/km. Pick the length on the day.',
-   res:{f:[['time','Time','text','30:00'],['dist','Distance km','text','5.0'],['pace','Avg pace','text','5:52'],['hr','Avg HR']]}},
-  {id:'tue',tag:'Tue',t:'Strength — push',k:'gym',det:'Chest, shoulders, triceps',
-   res:{f:[['chest','Chest'],['shoulders','Shoulders'],['triceps','Triceps'],['sets','Total sets']]}},
-  {id:'wed',tag:'Wed',t:bail?'Easy run':(tempo?'Tempo':'Intervals'),k:bail?'run':'speed',
-   det:bail
-     ?'Legs are flat, so today is aerobic only. <span class="num">5.0–8.0 km</span> at <span class="num">5:45–6:00/km</span>, conversational the whole way. A skipped quality session costs less than a bad one.'
-     :'Choose the session, then the tier that fits how the legs feel. Thirty to forty minutes, door to door.',
-   speed:true,res:{f:[['time','Total time','text','36:00'],['dist','Distance km','text','7.6'],['pace','Avg pace','text','4:45'],['hr','Avg HR']]}},
-  {id:'thu',tag:'Thu',t:'Strength — pull and legs',k:'gym',
-   det:'Back, biceps, posterior chain — RDLs, hip thrusts, leg curls',
-   res:{f:[['back','Back'],['biceps','Biceps'],['legs','Legs'],['sets','Total sets']]}},
-  {id:'fri',tag:'Fri',t:'Strength — full body',k:'gym',
-   det:'Moderate leg load, so Saturday still has something to work with',
-   res:{f:[['chest','Chest'],['back','Back'],['legs','Legs'],['sets','Total sets']]}},
-  {id:'sat',tag:'Sat',t:isRace?(race?'Race — sub-20 attempt':'5 km time trial'):'Long run',
-   k:isRace?'race':'run',
-   det:isRace
-     ?'10 min warm-up and drills → <span class="num">5 km flat out</span>, target <span class="num">3:59/km</span> → 10 min cool-down'
-     :'Run the clock, not the tape measure.'+
-      '<div class="satrange">'+
-      '<span class="c"><span class="k">Duration</span><span class="v">1:00–1:30</span><span class="n">h:mm</span></span>'+
-      '<span class="c"><span class="k">Distance</span><span class="v">9–20</span><span class="n">km</span></span>'+
-      '<span class="c"><span class="k">Pace</span><span class="v">5:50–6:10</span><span class="n">/km</span></span></div>'+
-      '<p class="satnote">Fresh legs go long, heavy legs go short — neither is a failed session. Just don\'t sit at the bottom two weeks running.</p>',
-   race:isRace,satToggle:!race,
-   res:{f:isRace
-     ?[['time','Time','text','21:40'],['dist','Distance km','text','5.00'],['pace','Avg pace','text','4:20'],['hr','Avg HR']]
-     :[['time','Time','text','58:20'],['dist','Distance km','text','10.1'],['pace','Avg pace','text','5:58'],['hr','Avg HR']]}},
-  {id:'sun',tag:'Sun',t:'Rest',k:'off',det:'Nothing. Eat, drink, sleep.',rest:true}
- ];
-
- D.forEach(day=>{
+ CORE.forEach((dayId,idx)=>{
+  const type=d.order[idx];
+  const day=Object.assign({id:dayId,tag:DAYLBL[dayId]},daySpec(d,w,type));
   const on=!!d.days[day.id];
-  const isKnee=KNEEDAYS.indexOf(day.id)>=0;
+  const isKnee=KNEE_TYPES.indexOf(type)>=0;
   const opened=!!d.open[day.id];
   const isToday=(w===weekOfToday())&&(day.id===todayId());
   daysHtml+='<div class="day'+(day.rest?' rest':'')+(day.race?' race':'')+(isKnee?' knee':'')+(isToday?' today':'')+'"><div class="day-main">'+
    '<input type="checkbox" class="tickbox" data-day="'+day.id+'"'+(on?' checked':'')+' aria-label="'+day.t+' done">'+
    '<div class="day-tag">'+day.tag+(isToday?'<span class="todaydot"></span>':'')+'</div><div class="day-body">'+
    '<div class="day-title">'+day.t+'<span class="kind">'+day.k+'</span></div>'+
+   orderSelect(d,w,day.id,type)+
    '<div class="day-detail">'+day.det+'</div>'+
    (isKnee?'<div class="day-fin">Knee circuit day — '+nCirc+' in your circuit</div>':'');
 
-  if(day.satToggle){
-   daysHtml+='<div class="seg" role="group" aria-label="Saturday session">'+
-    '<button data-sat="long" class="'+(isRace?'':'on')+'" aria-pressed="'+(!isRace)+'">Long run</button>'+
-    '<button data-sat="race" class="'+(isRace?'on':'')+'" aria-pressed="'+isRace+'">5 km time trial</button></div>';
-  }
   if(day.speed){
+   const curLvl=tiers.some(t=>t.id===d.tier)?d.tier:(((settings.customTiers[wmode]||[]).find(c=>c.id===d.tier)||{}).lvl||'medium');
+   const curLvlName=(tiers.find(t=>t.id===curLvl)||{}).n||'Standard';
    daysHtml+='<div class="seg" role="group" aria-label="Session type">'+
     '<button data-wed="tempo" class="'+(wmode==='tempo'?'on':'')+'" aria-pressed="'+(wmode==='tempo')+'">Tempo</button>'+
-    '<button data-wed="interval" class="'+(wmode==='interval'?'on':'')+'" aria-pressed="'+(wmode==='interval')+'">Intervals</button>'+
-    '<button data-wed="easy" class="'+(bail?'on':'')+'" aria-pressed="'+bail+'">Easy run</button></div>';
+    '<button data-wed="interval" class="'+(wmode==='interval'?'on':'')+'" aria-pressed="'+(wmode==='interval')+'">Intervals</button></div>'+
+    '<span class="hardness">today: '+curLvlName+'</span>';
    if(!bail){
    daysHtml+='<div class="tiers">';
-   tiers.forEach(t=>{const s=d.tier===t.id;
-    daysHtml+='<button class="tier '+t.c+(s?' on':'')+'" data-tier="'+t.id+'" aria-pressed="'+s+'">'+
-     '<div class="tier-top"><span class="tier-name"><span class="tier-dot"></span>'+t.n+'</span>'+
-     '<span class="tier-dur">'+t.d+'</span></div><div class="tier-struct">'+t.s+'</div>'+
-     '<div class="tier-ext">'+t.e+'</div></button>';});
+   tiers.forEach(base=>{
+    const customs=(settings.customTiers[wmode]||[]).filter(c=>c.lvl===base.id||(!c.lvl&&base.id==='medium'));
+    const variants=[base].concat(customs);
+    const open=curLvl===base.id;
+    daysHtml+='<div class="lvlgroup'+(open?' on':'')+'">';
+    daysHtml+='<button class="lvlhead '+base.c+'" data-lvlgroup="'+base.id+'" aria-expanded="'+open+'">'+
+     '<span class="tier-name"><span class="tier-dot"></span>'+base.n+
+     (variants.length>1?'<span class="tier-mine">'+variants.length+'</span>':'')+'</span>'+
+     '<span class="tier-dur">'+base.d+'</span></button>';
+    if(open){
+     daysHtml+='<div class="lvlbody">';
+     variants.forEach(v=>{const s=d.tier===v.id,mine=v.id!==base.id;
+      daysHtml+='<button class="variant'+(s?' on':'')+'" data-tier="'+v.id+'" aria-pressed="'+s+'">'+
+       (variants.length>1?'<div class="variant-name">'+(mine?esc(v.n)+' <span class="tier-mine">yours</span>':'Original')+
+        '<span class="tier-dur">'+(mine?esc(v.d):v.d)+'</span></div>':'')+
+       '<div class="tier-struct">'+(mine?esc(v.s):v.s)+'</div>'+
+       (v.e?'<div class="tier-ext">'+v.e+'</div>':'')+
+       (mine?'<span class="tier-del" data-tierdel="'+wmode+'|'+v.id+'" role="button" aria-label="Remove this session">remove</span>':'')+
+       '</button>';
+     });
+     daysHtml+=customForm===(wmode+':'+base.id)
+      ? '<div class="tier-add"><input type="text" id="ctName" placeholder="Name, e.g. Fartlek" maxlength="60">'+
+        '<input type="text" id="ctDur" placeholder="Duration, e.g. 35 min" maxlength="20">'+
+        '<textarea id="ctStruct" placeholder="Structure — warm-up, main set, cool-down…" maxlength="400"></textarea>'+
+        '<div class="tier-add-row"><button class="pick-btn" data-ctsave="'+wmode+':'+base.id+'">Save session</button>'+
+        '<button class="tier-add-cancel" data-ctcancel="1">Cancel</button></div></div>'
+      : '<button class="addvariant" data-ctopen="'+wmode+':'+base.id+'">+ Add another '+base.n.toLowerCase()+' session</button>';
+     daysHtml+='</div>';
+    }
+    daysHtml+='</div>';
+   });
    daysHtml+='</div>';
    }
   }
@@ -2196,6 +2407,12 @@ function renderWeek(){
  bindWeek(app,d);
 }
 function bindWeek(app,d){
+ app.querySelectorAll('[data-ord]').forEach(sel=>sel.onchange=e=>{
+  const val=e.target.value, dayId=e.target.dataset.ord;
+  if(val==='race'||val==='football'){swapType(d,dayId,'long');d.satMode=val;}
+  else if(val==='long'){swapType(d,dayId,'long');d.satMode='long';}
+  else{swapType(d,dayId,val);}
+  save();renderWeek();});
  app.querySelectorAll('.tickbox').forEach(cb=>cb.onchange=e=>{
   d.days[e.target.dataset.day]=e.target.checked;save();renderTape();renderProgress();renderWeek();});
  app.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{d.open[b.dataset.open]=true;save();renderWeek();});
@@ -2205,9 +2422,34 @@ function bindWeek(app,d){
   clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{await save();renderWeek();},800);});
  app.querySelectorAll('[data-ins]').forEach(b=>b.onclick=()=>insertWeek(+b.dataset.ins,false));
  app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>removeWeek(+b.dataset.del));
- app.querySelectorAll('[data-sat]').forEach(b=>b.onclick=()=>{d.satMode=b.dataset.sat;save();renderWeek();});
  app.querySelectorAll('[data-wed]').forEach(b=>b.onclick=()=>{d.wedType=b.dataset.wed;save();renderWeek();});
+ app.querySelectorAll('[data-lvlgroup]').forEach(b=>b.onclick=()=>{d.tier=b.dataset.lvlgroup;save();renderWeek();});
  app.querySelectorAll('[data-tier]').forEach(b=>b.onclick=()=>{d.tier=b.dataset.tier;save();renderWeek();});
+ app.querySelectorAll('[data-ctopen]').forEach(b=>b.onclick=()=>{customForm=b.dataset.ctopen;renderWeek();});
+ app.querySelectorAll('[data-ctcancel]').forEach(b=>b.onclick=()=>{customForm=null;renderWeek();});
+ app.querySelectorAll('[data-ctsave]').forEach(b=>b.onclick=async()=>{
+  const [wmodeKey,lvl]=b.dataset.ctsave.split(':');
+  const name=(document.getElementById('ctName').value||'').trim();
+  const dur=(document.getElementById('ctDur').value||'').trim();
+  const struct=(document.getElementById('ctStruct').value||'').trim();
+  if(!name||!struct){alert('Give it at least a name and a structure.');return;}
+  if(!settings.customTiers[wmodeKey])settings.customTiers[wmodeKey]=[];
+  const id='c'+Date.now();
+  settings.customTiers[wmodeKey].push({id:id,n:name,d:dur||'—',s:struct,lvl:lvl});
+  await saveSet();
+  customForm=null;
+  d.tier=id;save();
+  renderWeek();
+ });
+ app.querySelectorAll('[data-tierdel]').forEach(b=>b.onclick=async()=>{
+  const [wmodeKey,id]=b.dataset.tierdel.split('|');
+  if(!confirm('Remove this session from your list?'))return;
+  const removed=(settings.customTiers[wmodeKey]||[]).find(t=>t.id===id);
+  settings.customTiers[wmodeKey]=(settings.customTiers[wmodeKey]||[]).filter(t=>t.id!==id);
+  if(d.tier===id)d.tier=(removed&&removed.lvl)||'medium';
+  await saveSet();save();
+  renderWeek();
+ });
  app.querySelectorAll('[data-acc]').forEach(b=>b.onclick=()=>{
   panels[b.dataset.acc]=!panels[b.dataset.acc];
   settings.panels=panels;saveSet();renderWeek();renderLibSection();});
