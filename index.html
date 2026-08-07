@@ -1618,12 +1618,16 @@ function fmtPace(p){
  return Math.floor(p/60)+':'+String(Math.round(p%60)).padStart(2,'0');
 }
 function paceOf(km,secs){return (km&&secs)?fmtPace(secs/km)+'/km':'—';}
-function hav(a,b){
- const R=6371000,t=Math.PI/180;
- const dLat=(b.lat-a.lat)*t,dLon=(b.lon-a.lon)*t;
- const s=Math.sin(dLat/2)**2+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dLon/2)**2;
- return 2*R*Math.asin(Math.sqrt(s));
+function fmtDur(s){
+ if(s==null)return '—';
+ const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=Math.round(s%60);
+ return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0');
 }
+function fmtPace(p){
+ if(!p||!isFinite(p))return '—';
+ return Math.floor(p/60)+':'+String(Math.round(p%60)).padStart(2,'0');
+}
+function paceOf(km,secs){return (km&&secs)?fmtPace(secs/km)+'/km':'—';}
 function parseTrack(text){
  const doc=new DOMParser().parseFromString(text,'application/xml');
  if(doc.getElementsByTagName('parsererror').length)throw new Error('Not a readable XML track file');
@@ -1652,12 +1656,11 @@ function parseTrack(text){
 function toB64(f){return new Promise((res,rej)=>{const r=new FileReader();
  r.onload=()=>res(r.result.split(',')[1]);r.onerror=()=>rej(new Error('Could not read that file'));r.readAsDataURL(f);});}
 async function readShot(file){
+ if(!SCREENSHOT_WORKER_URL) throw new Error('Screenshot reading isn\'t set up yet — add your Worker URL to SCREENSHOT_WORKER_URL.');
  const b64=await toB64(file);
- const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",
+ const r=await fetch(SCREENSHOT_WORKER_URL,{method:"POST",
   headers:{"Content-Type":"application/json"},
-  body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:[
-   {type:"image",source:{type:"base64",media_type:file.type,data:b64}},
-   {type:"text",text:"This is a screenshot of a running workout summary from a watch or phone. Read the visible numbers. Reply with ONLY a JSON object, no markdown fences and no other text, with keys: distance_km (number or null), duration (string like 24:31 or 1:04:12, or null), avg_pace (string like 4:45, or null), avg_hr (number or null). Convert miles to km if the screen is in miles. Use null for anything not visible."}]}]})});
+  body:JSON.stringify({image:b64, mediaType:file.type})});
  const data=await r.json();
  if(data.error)throw new Error(data.error.message||'Could not read the screenshot');
  const txt=data.content.filter(i=>i.type==='text').map(i=>i.text).join('');
@@ -2048,20 +2051,6 @@ function fieldRow(day,defs,res){
   ((res&&res[f[0]])||'')+'" placeholder="'+(f[3]||'')+'"></div>';});
  return h+'</div>';
 }
-function routeBlock(day,r){
- if(!r||!r.path)return '';
- const pts=r.path.map(p=>(8+p[0]*124).toFixed(1)+','+(8+p[1]*124).toFixed(1)).join(' ');
- return '<div class="route"><svg viewBox="0 0 140 140" preserveAspectRatio="xMidYMid meet">'+
-  '<polyline points="'+pts+'" fill="none" stroke="var(--track)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>'+
-  '<circle cx="'+(8+r.path[0][0]*124).toFixed(1)+'" cy="'+(8+r.path[0][1]*124).toFixed(1)+'" r="3.4" fill="var(--lane)"/>'+
-  '</svg><div class="route-m"><span>distance <b>'+r.km+' km</b></span><span>time <b>'+fmtDur(r.secs)+
-  '</b></span><span>pace <b>'+paceOf(r.km,r.secs)+'</b></span></div></div>';
-}
-function importBlock(day){
- return '<div class="imp"><label>Import .gpx / .tcx<input type="file" accept=".gpx,.tcx,.xml" data-track="'+day+'"></label>'+
-  '<label>Read a screenshot<input type="file" accept="image/*" data-shot="'+day+'"></label>'+
-  '<span class="imp-status" id="st-'+day+'"></span></div>';
-}
 function exPanel(d,day,isKneeDay){
  const K=exOf(d,day);
  let n=parseInt(K.other,10)||0;
@@ -2168,7 +2157,6 @@ function renderWeek(){
   }
   if(day.res){
    daysHtml+='<div class="res"><div class="res-h">What you did</div>'+fieldRow(day.id,day.res.f,d.res[day.id]);
-   if(RUNDAYS.indexOf(day.id)>=0)daysHtml+=importBlock(day.id)+routeBlock(day.id,d.route[day.id]);
    daysHtml+='</div>';
   }
   if(isKnee)daysHtml+=exPanel(d,day.id,true);
