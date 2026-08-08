@@ -597,16 +597,20 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 .setstotal b{font-family:'Anton',sans-serif;font-weight:400;font-size:16px;color:var(--ink);margin-right:4px;}
 .day-detail em{font-style:normal;color:var(--ink);font-weight:600;}
 
-.gymtable{display:grid;grid-template-columns:auto 1fr 1fr;gap:8px 10px;align-items:center;}
+.gymtable{display:grid;grid-template-columns:auto 1fr 1fr;gap:8px 10px;align-items:start;}
 .gymhead{display:contents;}
 .gymhead span{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;
   color:var(--track);}
 .gymrow{display:contents;}
-.gymrow label{font-weight:700;font-size:12.5px;white-space:nowrap;}
+.gymrow label{padding-top:7px;font-weight:700;font-size:12.5px;white-space:nowrap;}
+.gymcell{display:flex;flex-direction:column;gap:3px;min-width:0;}
 .gymrow input{width:100%;min-width:0;background:var(--stock);border:1px solid var(--rule);border-radius:2px;
   padding:7px 8px;font-family:'DM Mono',monospace;font-size:12.5px;color:var(--ink-soft);}
 .gymrow input:focus{outline:2px solid var(--track);outline-offset:-1px;color:var(--ink);}
 .res-sub{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--ink-faint);margin:-4px 0 9px;}
+.field-err{display:block;font-family:'DM Mono',monospace;font-size:10.5px;color:var(--t3);
+  min-height:0;margin-top:1px;}
+input.field-bad{border-color:var(--t3)!important;outline:1.5px solid var(--t3);outline-offset:-1px;}
 
 
 /* personal bests + race countdown */
@@ -1837,6 +1841,20 @@ let panels={days:true,rate:false,stats:false,lib:false};
 let customForm=null; // 'tempo:easy' | 'tempo:medium' | ... | null — which level's add/edit form is open
 let editingTierId=null; // id of the custom session being edited, or null when adding a new one
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+const NUMFIELDS=['dist','hr','elevGain','elevLoss'];
+function isNumericField(key){
+ if(NUMFIELDS.indexOf(key)>=0)return true;
+ const base=key.endsWith('Per')?key.slice(0,-3):key;
+ return Object.prototype.hasOwnProperty.call(MUSC,base);
+}
+function validateField(input,key){
+ if(!isNumericField(key))return;
+ const v=input.value.trim();
+ const bad=v!==''&&!/^\d+(\.\d+)?$/.test(v);
+ input.classList.toggle('field-bad',bad);
+ const err=document.querySelector('[data-fielderr="'+input.dataset.res+'"]');
+ if(err)err.textContent=bad?'Number required':'';
+}
 function acc(key,title,meta,body,done){
  const on=!!panels[key];
  return '<section class="acc'+(on?' on':'')+(done?' done':'')+'"><button class="acc-h" data-acc="'+key+'" aria-expanded="'+on+'">'+
@@ -2053,14 +2071,19 @@ function computePBs(){
    const r=res[longDay],km=parseFloat(r.dist),t=parseHMS(r.time);
    if(km>0){totalKm+=km;if(!raceMode&&km>longest)longest=km;
     if(t>0){const p=t/km;if(fastestEver===null||p<fastestEver)fastestEver=p;}}
-   if(raceMode&&t>0&&km>=4.5&&km<=5.5&&(best5k===null||t<best5k))best5k=t;
+   if(t>0){
+    const distOk=raceMode?(isNaN(km)||(km>=4.5&&km<=5.5)):(km>=4.5&&km<=5.5);
+    if(distOk&&t<best5k)best5k=t;
+   }
   }
   if(easyDay&&res[easyDay]){const r=res[easyDay],km=parseFloat(r.dist),t=parseHMS(r.time);
    if(km>0){totalKm+=km;if(t>0){const p=t/km;
     if(fastestEasy===null||p<fastestEasy)fastestEasy=p;
-    if(fastestEver===null||p<fastestEver)fastestEver=p;}}}
+    if(fastestEver===null||p<fastestEver)fastestEver=p;}}
+   if(t>0&&km>=4.5&&km<=5.5&&t<best5k)best5k=t;}
   if(speedDay&&res[speedDay]){const r=res[speedDay],km=parseFloat(r.dist),t=parseHMS(r.time);
-   if(km>0){totalKm+=km;if(t>0){const p=t/km;if(fastestEver===null||p<fastestEver)fastestEver=p;}}}
+   if(km>0){totalKm+=km;if(t>0){const p=t/km;if(fastestEver===null||p<fastestEver)fastestEver=p;}}
+   if(t>0&&km>=4.5&&km<=5.5&&t<best5k)best5k=t;}
  }
  return {best5k:best5k,longest:longest,fastestEver:fastestEver,fastestEasy:fastestEasy,totalKm:totalKm};
 }
@@ -2193,7 +2216,7 @@ function autoRate(w){
  if(!easyDay||!days[easyDay]){v.easy=0;why.easy='not run';}
  else{
   let s=3;const r=res[easyDay]||{},km=parseFloat(r.dist),t=parseHMS(r.time);const b=[];
-  if(km>0){if(km>=5.0&&km<=8.0){s++;b.push('inside the range');}
+  if(km>0){if(km>=5.0&&km<=9.0){s++;b.push('inside the range');}
    else if(km<5.0)b.push('under the range');else b.push('over the range');}
   if(km>0&&t>0){const p=t/km;
    if(p>=345&&p<=360){s++;b.push('pace in the easy band');}
@@ -2220,7 +2243,7 @@ function autoRate(w){
  if(!speedDay||!days[speedDay]){v.speed=0;why.speed='not run';}
  else if(d.wedType==='easy'){
   let s=3;const r=res[speedDay]||{},t=parseHMS(r.time),km=parseFloat(r.dist);const b=['swapped for an easy run'];
-  if(km>0&&km>=5.0&&km<=8.0)s++;
+  if(km>0&&km>=5.0&&km<=9.0)s++;
   if(km>0&&t>0){const p=t/km;
    if(p>=345&&p<=360){s++;b.push('kept it easy');}
    else if(p<340){s--;b.push('not actually easy');}}
@@ -2261,8 +2284,8 @@ function autoRate(w){
  }
  else{
   let s=3;const r=res[longDay]||{},km=parseFloat(r.dist),t=parseHMS(r.time);const b=[];
-  if(km>0){if(km>=9.0&&km<=20.0){s++;b.push('inside the range');}
-   else if(km<9.0){s--;b.push('under the range');}else b.push('over the range');}
+  if(km>0){if(km>=10.0&&km<=25.0){s++;b.push('inside the range');}
+   else if(km<10.0){s--;b.push('under the range');}else b.push('over the range');}
   if(km>0&&t>0){const p=t/km;
    if(p>=350&&p<=370){s++;b.push('pace in the band');}
    else if(p<340){s--;b.push('run too hard');}
@@ -2311,7 +2334,7 @@ function weekAgg(w){
    if(v>0){km+=v;runs++;if(v>longest)longest=v;
     let bucket=type;
     if(type==='speed'&&d.wedType==='easy')bucket='easy';
-    if(type==='long'&&d.satMode==='football')bucket=(v<9.0?'easy':'long');
+    if(type==='long'&&d.satMode==='football')bucket=(v<10.0?'easy':'long');
     kmType[bucket]+=v;
     if(t>0){const p=t/v;if(fastest===null||p<fastest)fastest=p;}}
    secs+=t;
@@ -2721,7 +2744,8 @@ function fieldRow(day,defs,res){
  let h='<div class="fields">';
  defs.forEach(f=>{h+='<div class="field"><label>'+f[1]+'</label><input type="'+(f[2]||'number')+
   '" inputmode="'+(f[2]==='text'?'text':'numeric')+'" data-res="'+day+'.'+f[0]+'" value="'+
-  ((res&&res[f[0]])||'')+'" placeholder="'+(f[3]||'')+'"></div>';});
+  ((res&&res[f[0]])||'')+'" placeholder="'+(f[3]||'')+'">'+
+  '<span class="field-err" data-fielderr="'+day+'.'+f[0]+'"></span></div>';});
  return h+'</div>';
 }
 function gymFieldRow(day,defs,res){
@@ -2730,8 +2754,10 @@ function gymFieldRow(day,defs,res){
   const key=f[0],setsKey=key+'Per';
   const exV=(res&&res[key])||'',setsV=(res&&res[setsKey])||'';
   h+='<div class="gymrow"><label>'+f[1]+'</label>'+
-   '<input type="text" inputmode="numeric" data-res="'+day+'.'+key+'" value="'+exV+'" placeholder="'+(f[3]||'0')+'">'+
-   '<input type="text" inputmode="numeric" data-res="'+day+'.'+setsKey+'" value="'+setsV+'" placeholder="e.g. 7">'+
+   '<div class="gymcell"><input type="text" inputmode="numeric" data-res="'+day+'.'+key+'" value="'+exV+'" placeholder="'+(f[3]||'0')+'">'+
+   '<span class="field-err" data-fielderr="'+day+'.'+key+'"></span></div>'+
+   '<div class="gymcell"><input type="text" inputmode="numeric" data-res="'+day+'.'+setsKey+'" value="'+setsV+'" placeholder="e.g. 7">'+
+   '<span class="field-err" data-fielderr="'+day+'.'+setsKey+'"></span></div>'+
    '</div>';
  });
  return h+'</div>';
@@ -2771,13 +2797,13 @@ function daySpec(d,w,type){
    det:'Every muscle group gets a touch — moderate leg load, so the long run day still has something to work with.',
    res:{f:[['chest','Chest','text','1'],['shoulders','Shoulders','text','1'],['triceps','Triceps','text','1'],['back','Back','text','1'],['biceps','Biceps','text','1'],['legs','Legs','text','1']]}};
  if(type==='easy')return {t:'Easy run',k:'run',
-   det:'<span class="num">5.0–8.0 km</span> in <span class="num">30–55 min</span> at 5:45–6:00/km. Pick the length on the day.',
+   det:'<span class="num">5.0–9.0 km</span> in <span class="num">30–55 min</span> at 5:45–6:00/km. Pick the length on the day.',
    res:{f:[['time','Time','text','30:00'],['dist','Distance km','text','5.0'],['pace','Avg pace','text','5:52'],['hr','Avg HR']]}};
  if(type==='speed'){
   const wmode=d.wedType||'tempo',tempo=wmode==='tempo',bail=wmode==='easy';
   return {t:bail?'Easy run':(tempo?'Tempo':'Intervals'),k:bail?'run':'speed',
    det:bail
-     ?'Legs are flat, so today is aerobic only. <span class="num">5.0–8.0 km</span> at <span class="num">5:45–6:00/km</span>, conversational the whole way. A skipped quality session costs less than a bad one.'
+     ?'Legs are flat, so today is aerobic only. <span class="num">5.0–9.0 km</span> at <span class="num">5:45–6:00/km</span>, conversational the whole way. A skipped quality session costs less than a bad one.'
      :'Choose the session, then the tier that fits how the legs feel. Thirty to forty minutes, door to door.',
    speed:true,res:{f:[['time','Total time','text','36:00'],['dist','Distance km','text','7.6'],['pace','Avg pace','text','4:45'],['hr','Avg HR']]}};
  }
@@ -2795,7 +2821,7 @@ function daySpec(d,w,type){
    det:'Run the clock, not the tape measure.'+
     '<div class="satrange">'+
     '<span class="c"><span class="k">Duration</span><span class="v">1:00–1:30</span><span class="n">h:mm</span></span>'+
-    '<span class="c"><span class="k">Distance</span><span class="v">9–20</span><span class="n">km</span></span>'+
+    '<span class="c"><span class="k">Distance</span><span class="v">10–25</span><span class="n">km</span></span>'+
     '<span class="c"><span class="k">Pace</span><span class="v">5:50–6:10</span><span class="n">/km</span></span></div>'+
     '<p class="satnote">Fresh legs go long, heavy legs go short — neither is a failed session. Just don\'t sit at the bottom two weeks running.</p>',
    res:{f:[['time','Time','text','58:20'],['dist','Distance km','text','10.1'],['pace','Avg pace','text','5:58'],['hr','Avg HR'],['elevGain','Elevation gain m','text','120'],['elevLoss','Elevation loss m','text','120']]}};
@@ -2926,9 +2952,13 @@ function bindWeek(app,d){
   d.days[e.target.dataset.day]=e.target.checked;save();renderTape();renderProgress();renderWeek();});
   app.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{d.open[b.dataset.open]=true;save();renderWeek();});
  app.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>openPicker('day',b.dataset.pick));
- app.querySelectorAll('[data-kother]').forEach(i=>i.oninput=e=>{
-  exOf(d,e.target.dataset.kother).other=e.target.value;
-  clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{await save();renderWeek();},800);});
+ app.querySelectorAll('[data-kother]').forEach(i=>{
+  i.oninput=e=>{
+   exOf(d,e.target.dataset.kother).other=e.target.value;
+   clearTimeout(saveTimer);saveTimer=setTimeout(save,800);
+  };
+  i.onblur=()=>{clearTimeout(saveTimer);save();renderWeek();};
+ });
  app.querySelectorAll('[data-ins]').forEach(b=>b.onclick=()=>insertWeek(+b.dataset.ins,false));
  app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>removeWeek(+b.dataset.del));
  app.querySelectorAll('[data-wed]').forEach(b=>b.onclick=()=>{d.wedType=b.dataset.wed;save();renderWeek();});
@@ -3010,22 +3040,27 @@ function bindWeek(app,d){
  const cmpA=document.getElementById('cmpA'),cmpB=document.getElementById('cmpB');
  if(cmpA)cmpA.onchange=e=>{compareA=+e.target.value;renderWeek();};
  if(cmpB)cmpB.onchange=e=>{compareB=+e.target.value;renderWeek();};
- app.querySelectorAll('[data-res]').forEach(i=>i.oninput=e=>{
-  const p=e.target.dataset.res.split('.');
-  if(!d.res[p[0]])d.res[p[0]]={};
-  d.res[p[0]][p[1]]=e.target.value;
-  if(p[1]==='time'||p[1]==='dist')syncPace(d,p[0]);
-  const muscKey=p[1].endsWith('Per')?p[1].slice(0,-3):p[1];
-  if(Object.prototype.hasOwnProperty.call(MUSC,muscKey)){
-   syncSets(d,p[0]);
-   const r=d.res[p[0]]||{};
-   const totalEl=app.querySelector('.setstotal');
-   const g=gymTotal(r);
-   if(totalEl)totalEl.innerHTML=g
-    ?'<b>'+g.ex+'</b> exercise'+(g.ex===1?'':'s')+' · <b>'+g.sets+'</b> total sets'
-    :'Fill in exercises and total sets per muscle above.';
-  }
-  clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{await save();renderWeek();},900);});
+ app.querySelectorAll('[data-res]').forEach(i=>{
+  i.oninput=e=>{
+   const p=e.target.dataset.res.split('.');
+   if(!d.res[p[0]])d.res[p[0]]={};
+   d.res[p[0]][p[1]]=e.target.value;
+   validateField(e.target,p[1]);
+   if(p[1]==='time'||p[1]==='dist')syncPace(d,p[0]);
+   const muscKey=p[1].endsWith('Per')?p[1].slice(0,-3):p[1];
+   if(Object.prototype.hasOwnProperty.call(MUSC,muscKey)){
+    syncSets(d,p[0]);
+    const r=d.res[p[0]]||{};
+    const totalEl=app.querySelector('.setstotal');
+    const g=gymTotal(r);
+    if(totalEl)totalEl.innerHTML=g
+     ?'<b>'+g.ex+'</b> exercise'+(g.ex===1?'':'s')+' · <b>'+g.sets+'</b> total sets'
+     :'Fill in exercises and total sets per muscle above.';
+   }
+   clearTimeout(saveTimer);saveTimer=setTimeout(save,900);
+  };
+  i.onblur=()=>{clearTimeout(saveTimer);save();renderWeek();};
+ });
 }
 
 /* ═══ tape, circuit, library ═══ */
