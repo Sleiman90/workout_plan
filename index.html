@@ -25,7 +25,7 @@
 html[data-theme="dark"]{
   --stock:#000000; --card:#0d0d0d; --sunk:#000000;
   --ink:#ffffff; --ink-soft:#c4c4c4; --ink-faint:#8a8a8a;
-  --rule:#262626; --track:#ff7043; --lane:#d98a3d;
+  --rule:#5c5c5c; --track:#ff7043; --lane:#d98a3d;
   --t1:#5fa885; --t2:#d9a53d; --t3:#e0644a;
 }
 body{transition:background-color .2s ease,color .2s ease;}
@@ -79,10 +79,10 @@ body{background:var(--stock);color:var(--ink);font-family:'Archivo',system-ui,sa
   font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-faint);}
 .tick:focus-visible{outline:2px solid var(--track);outline-offset:1px;}
 .tick .bar{width:2px;height:20px;background:var(--rule);transition:height .2s,background .2s;}
-.tick.done .bar{background:var(--lane);}
+.tick.past .bar{background:var(--t1);}
 .tick.race .bar{height:32px;background:var(--track);width:3px;}
 .tick.here .bar{height:38px;background:var(--track);width:3px;}
-.tick.here{color:var(--track);font-weight:500;} .tick.done{color:var(--lane);}
+.tick.here{color:var(--track);font-weight:500;} .tick.past{color:var(--t1);}
 .tape-rule{height:1px;background:var(--rule);margin-top:2px;}
 
 /* week head */
@@ -385,8 +385,9 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 .vb-l{font-family:'DM Mono',monospace;font-size:8.5px;color:var(--ink-faint);}
 .vb-n{font-family:'DM Mono',monospace;font-size:8.5px;color:var(--ink-soft);}
 .vb.cur .vb-l{color:var(--track);font-weight:500;}
-.lc svg{width:100%;height:84px;display:block;}
-.lc-ax{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;
+.trend{width:100%;}
+.trend svg{width:100%;height:120px;display:block;}
+.trend-ax{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;
   font-size:9.5px;color:var(--ink-faint);margin-top:2px;}
 .heat{display:flex;flex-direction:column;gap:2px;}
 .heat-row{display:flex;gap:2px;align-items:center;}
@@ -469,8 +470,6 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 .lg.s{background:var(--lane);} .lg.k{background:var(--track);}
 
 /* week complete */
-.tick.done .bar{background:var(--t1);}
-.tick.done{color:var(--t1);}
 .week-flag.done{background:var(--t1);}
 .acc.done{border-left:3px solid var(--t1);}
 .acc.done .acc-m{color:var(--t1);}
@@ -2393,6 +2392,7 @@ function weekAgg(w){
  let km=0,secs=0,runs=0,longest=0,fastest=null,elevGain=0,elevLoss=0,hrSum=0,hrN=0;
  let paceKm=0,paceSecs=0;
  const kmType={easy:0,speed:0,long:0};
+ const hrByType={easy:{sum:0,n:0},speed:{sum:0,n:0},long:{sum:0,n:0}};
  ['easy','speed','long'].forEach(type=>{
   slotsOfType(d,type).forEach(k=>{
    const r=res[k];if(!r)return;
@@ -2416,11 +2416,19 @@ function weekAgg(w){
    if(!isNaN(eg)&&eg>0)elevGain+=eg;
    if(!isNaN(el)&&el>0)elevLoss+=el;
    const hr=parseFloat(r.hr);
-   if(!isNaN(hr)&&hr>0){hrSum+=hr;hrN++;}
+   if(!isNaN(hr)&&hr>0){
+    hrSum+=hr;hrN++;
+    if(!isFootball){hrByType[type].sum+=hr;hrByType[type].n++;}
+   }
   });
  });
  const pace=paceKm?paceSecs/paceKm:null;
  const avgHR=hrN?hrSum/hrN:null;
+ const hrAvgByType={
+  easy:hrByType.easy.n?hrByType.easy.sum/hrByType.easy.n:null,
+  speed:hrByType.speed.n?hrByType.speed.sum/hrByType.speed.n:null,
+  long:hrByType.long.n?hrByType.long.sum/hrByType.long.n:null
+ };
  const typeCounts=typeCountsOf(w);
  let sets=0;const muscles={};
  const gymDays=['push','pull','full'].flatMap(t=>slotsOfType(d,t));
@@ -2444,7 +2452,7 @@ function weekAgg(w){
  const hardness=(speedDay&&days[speedDay]&&(wedTypeOf(d,speedDay,w)!=='easy'))?hardnessOf(d,speedDay):null;
  return {w:w,km:km,secs:secs,runs:runs,kmType:kmType,longest:longest,fastest:fastest,
   paceKm:paceKm,paceSecs:paceSecs,pace:pace,
-  elevGain:elevGain,elevLoss:elevLoss,avgHR:avgHR,typeCounts:typeCounts,
+  elevGain:elevGain,elevLoss:elevLoss,avgHR:avgHR,hrAvgByType:hrAvgByType,typeCounts:typeCounts,
   sets:sets,muscles:muscles,exCount:exCount,groupCount:groupCount,exs:exs,circuits:circuits,
   warm:warm,cool:cool,sessions:CORE.filter(k=>days[k]).length,hardness:hardness,
   strSess:gymDays.filter(k=>days[k]).length,kneeDay:kneeDay,days:days,rate:rate,full:weekDone(w)};
@@ -2520,16 +2528,20 @@ function lineChart(series,fmt,invert){
  const nums=vals.map(s=>s.v);
  const min=Math.min.apply(null,nums),max=Math.max.apply(null,nums),rng=(max-min)||1;
  const n=series.length;
+ const VW=560,VH=160,padL=10,padR=10,padT=16,padB=16;
  const xy=[];
  series.forEach((s,i)=>{if(s.v==null||s.v<=0)return;
-  xy.push([6+(i/((n-1)||1))*128,10+(1-(s.v-min)/rng)*56]);});
+  const x=padL+(i/((n-1)||1))*(VW-padL-padR);
+  const y=padT+(1-(s.v-min)/rng)*(VH-padT-padB);
+  xy.push([x,y,s.l,s.v]);
+ });
  const pts=xy.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
- const dots=xy.map(p=>'<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2.4" fill="var(--track)"/>').join('');
- return '<div class="lc"><svg viewBox="0 0 140 84" preserveAspectRatio="none">'+
-  '<line x1="6" y1="10" x2="134" y2="10" stroke="var(--rule)" stroke-width="0.6"/>'+
-  '<line x1="6" y1="66" x2="134" y2="66" stroke="var(--rule)" stroke-width="0.6"/>'+
-  '<polyline points="'+pts+'" fill="none" stroke="var(--track)" stroke-width="1.6" stroke-linejoin="round"/>'+
-  dots+'</svg><div class="lc-ax"><span>'+fmt(invert?max:min)+'</span><span>'+fmt(invert?min:max)+'</span></div></div>';
+ const dots=xy.map(p=>'<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="4" fill="var(--track)"><title>Week '+p[2]+': '+fmt(p[3])+'</title></circle>').join('');
+ return '<div class="trend"><svg viewBox="0 0 '+VW+' '+VH+'" preserveAspectRatio="none">'+
+  '<line x1="'+padL+'" y1="'+padT+'" x2="'+(VW-padR)+'" y2="'+padT+'" stroke="var(--rule)" stroke-width="1"/>'+
+  '<line x1="'+padL+'" y1="'+(VH-padB)+'" x2="'+(VW-padR)+'" y2="'+(VH-padB)+'" stroke="var(--rule)" stroke-width="1"/>'+
+  '<polyline points="'+pts+'" fill="none" stroke="var(--track)" stroke-width="2.6" stroke-linejoin="round"/>'+
+  dots+'</svg><div class="trend-ax"><span>'+fmt(invert?max:min)+'</span><span>'+fmt(invert?min:max)+'</span></div></div>';
 }
 function heat(kind){
  let h='<div class="heat"><div class="heat-row head"><span class="heat-w"></span>'+
@@ -2603,6 +2615,14 @@ function panelWeek(){
   {l:'Easy',v:+a.kmType.easy.toFixed(1),c:'var(--t1)'},
   {l:'Speed',v:+a.kmType.speed.toFixed(1),c:'var(--t3)'},
   {l:'Long',v:+a.kmType.long.toFixed(1),c:'var(--lane)'}],' km'),'kilometres run');
+ (function(){
+  const hrByType=a.weeks[0].hrAvgByType;
+  h+=sec('Heart rate',hbar([
+   {l:'Easy',v:hrByType.easy?Math.round(hrByType.easy):0,c:'var(--t1)'},
+   {l:'Speed',v:hrByType.speed?Math.round(hrByType.speed):0,c:'var(--t3)'},
+   {l:'Long',v:hrByType.long?Math.round(hrByType.long):0,c:'var(--lane)'}
+  ],' bpm'),'avg bpm by session type');
+ })();
  h+=sec('Strength',bigRow([
   big('Gym days',a.strSess+'<span class="of">/3</span>','done'),
   big('Sets',a.sets||0,'total')
@@ -2645,7 +2665,9 @@ function panelAll(){
   big('Total gain',a.elevGain?Math.round(a.elevGain):'—','m climbed'),
   big('Total loss',a.elevLoss?Math.round(a.elevLoss):'—','m descended')
  ])+vbar(ws.map(x=>({l:x.w,v:Math.round(x.elevGain||0),cur:x.w===w})),' m','var(--t2)'),'gain per week · bar = one week');
- if(ws.some(x=>x.avgHR))h+=sec('Heart rate trend',lineChart(ws.map(x=>({l:x.w,v:x.avgHR})),v=>Math.round(v)+' bpm'),'avg HR per week, left→right = week 1→'+w);
+ if(ws.some(x=>x.hrAvgByType.easy))h+=sec('Easy run HR trend',lineChart(ws.map(x=>({l:x.w,v:x.hrAvgByType.easy})),v=>Math.round(v)+' bpm'),'avg bpm per week, left→right = week 1→'+w);
+ if(ws.some(x=>x.hrAvgByType.speed))h+=sec('Speed session HR trend',lineChart(ws.map(x=>({l:x.w,v:x.hrAvgByType.speed})),v=>Math.round(v)+' bpm'),'avg bpm per week, left→right = week 1→'+w);
+ if(ws.some(x=>x.hrAvgByType.long))h+=sec('Long run HR trend',lineChart(ws.map(x=>({l:x.w,v:x.hrAvgByType.long})),v=>Math.round(v)+' bpm'),'avg bpm per week, left→right = week 1→'+w);
  h+=sec('Knee work',bigRow([
   big('Circuits',a.circuits,'total'),
   big('Exercises',a.exs,'logged')
@@ -2698,38 +2720,105 @@ function renderStats(){
 async function shareWeekImage(){
  const w=state.week,a=agg(w,w);
  try{if(document.fonts&&document.fonts.ready)await document.fonts.ready;}catch(e){}
+
+ const W=1080,PAD=64,MAXH=2400;
  const cv=document.createElement('canvas');
- cv.width=1080;cv.height=1350;
+ cv.width=W;cv.height=MAXH;
  const ctx=cv.getContext('2d');
- ctx.fillStyle='#e4e1d8';ctx.fillRect(0,0,1080,1350);
- ctx.fillStyle='#bd4326';ctx.fillRect(0,0,1080,16);
+ ctx.fillStyle='#e4e1d8';ctx.fillRect(0,0,W,MAXH);
+ ctx.fillStyle='#bd4326';ctx.fillRect(0,0,W,16);
+
  ctx.fillStyle='#9b9d9f';ctx.font="26px 'DM Mono',monospace";
- ctx.fillText('WEEK '+w+' OF '+state.total+'  ·  '+weekRange(w).toUpperCase(),64,110);
+ ctx.fillText('WEEK '+w+' OF '+state.total+'  ·  '+weekRange(w).toUpperCase(),PAD,110);
  ctx.fillStyle='#15171a';ctx.font="76px 'Anton',sans-serif";
- ctx.fillText('The Long Way',64,205);
- ctx.fillText('to Nineteen',64,290);
+ ctx.fillText('The Long Way',PAD,205);
+ ctx.fillText('to Nineteen',PAD,290);
+
+ let cy=290+94;
  const stats=[
   ['DISTANCE',a.km.toFixed(1)+' km'],
   ['TIME ON FEET',fmtDur(a.secs)],
   ['AVG PACE',a.pace?fmtPace(a.pace)+'/km':'—'],
   ['SESSIONS',a.sessions+' of 7'],
-  ['TOTAL SETS',(a.sets||0)],
-  ['KNEE CIRCUITS',a.circuits]
+  ['TOTAL SETS',String(a.sets||0)],
+  ['KNEE CIRCUITS',String(a.circuits)]
  ];
- let y=420;
- stats.forEach(s=>{
-  ctx.fillStyle='#9b9d9f';ctx.font="22px 'DM Mono',monospace";ctx.fillText(s[0],64,y);
-  ctx.fillStyle='#15171a';ctx.font="60px 'Anton',sans-serif";ctx.fillText(String(s[1]),64,y+62);
-  y+=132;
+ const colW=(W-PAD*2)/2,rowH=140;
+ stats.forEach((s,i)=>{
+  const col=i%2,row=Math.floor(i/2);
+  const x=PAD+col*colW,sy=cy+row*rowH;
+  ctx.fillStyle='#9b9d9f';ctx.font="21px 'DM Mono',monospace";ctx.fillText(s[0],x,sy);
+  ctx.fillStyle='#15171a';ctx.font="54px 'Anton',sans-serif";ctx.fillText(s[1],x,sy+56);
  });
+ cy+=rowH*Math.ceil(stats.length/2)+36;
+
+ ctx.strokeStyle='#c9c5b9';ctx.lineWidth=2;
+ ctx.beginPath();ctx.moveTo(PAD,cy);ctx.lineTo(W-PAD,cy);ctx.stroke();
+ cy+=50;
+
+ const distRows=[
+  {l:'Easy',v:a.kmType.easy,c:'#3d6f57'},
+  {l:'Speed',v:a.kmType.speed,c:'#a3311c'},
+  {l:'Long',v:a.kmType.long,c:'#1f3a5c'}
+ ].filter(r=>r.v>0.05);
+ if(distRows.length){
+  ctx.fillStyle='#15171a';ctx.font="30px 'Anton',sans-serif";
+  ctx.fillText('Distance by session',PAD,cy);
+  cy+=48;
+  const maxV=Math.max.apply(null,distRows.map(r=>r.v))||1;
+  const barX=PAD+130,barMaxW=W-PAD-barX-130;
+  distRows.forEach(r=>{
+   ctx.fillStyle='#15171a';ctx.font="22px 'Archivo',sans-serif";
+   ctx.fillText(r.l,PAD,cy+20);
+   ctx.fillStyle='#dcd9cf';ctx.fillRect(barX,cy,barMaxW,26);
+   ctx.fillStyle=r.c;ctx.fillRect(barX,cy,Math.max(6,barMaxW*(r.v/maxV)),26);
+   ctx.fillStyle='#15171a';ctx.font="20px 'DM Mono',monospace";
+   ctx.fillText(r.v.toFixed(1)+' km',barX+barMaxW+16,cy+20);
+   cy+=58;
+  });
+  cy+=32;
+ }
+
+ const TYPE_HEX={easy:'#3d6f57',speed:'#a3311c',long:'#1f3a5c',strength:'#b0801f',rest:'#9b9d9f'};
+ const TYPE_LBL={easy:'Easy run',speed:'Speed',long:'Long run',strength:'Strength',rest:'Rest'};
+ const typeRow=['easy','speed','long','strength','rest'].filter(k=>a.typeCounts[k]>0)
+  .map(k=>({l:TYPE_LBL[k],v:a.typeCounts[k],c:TYPE_HEX[k]}));
+ if(typeRow.length){
+  ctx.fillStyle='#15171a';ctx.font="30px 'Anton',sans-serif";
+  ctx.fillText('Sessions by type',PAD,cy);
+  cy+=52;
+  let cx=PAD;
+  typeRow.forEach(r=>{
+   ctx.fillStyle=r.c;ctx.beginPath();ctx.arc(cx+9,cy-7,9,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle='#15171a';ctx.font="21px 'DM Mono',monospace";
+   const txt=r.v+' '+r.l;
+   ctx.fillText(txt,cx+26,cy);
+   cx+=26+ctx.measureText(txt).width+40;
+   if(cx>W-PAD-160){cx=PAD;cy+=44;}
+  });
+  cy+=54;
+ }
+
+ cy+=16;
+ ctx.strokeStyle='#c9c5b9';ctx.lineWidth=2;
+ ctx.beginPath();ctx.moveTo(PAD,cy);ctx.lineTo(W-PAD,cy);ctx.stroke();
+ cy+=56;
+
  const pb=computePBs();
+ const raceTxt=daysToRace()+' DAYS TO RACE DAY';
  if(pb.best5k){
-  ctx.fillStyle='#bd4326';ctx.font="22px 'DM Mono',monospace";ctx.fillText('PB 5K',64,y+18);
-  ctx.font="46px 'Anton',sans-serif";ctx.fillText(fmtDur(pb.best5k),64,y+68);
+  ctx.fillStyle='#bd4326';ctx.font="22px 'DM Mono',monospace";ctx.fillText('PB 5K',PAD,cy);
+  ctx.fillStyle='#15171a';ctx.font="48px 'Anton',sans-serif";ctx.fillText(fmtDur(pb.best5k),PAD,cy+54);
  }
  ctx.fillStyle='#1f3a5c';ctx.font="24px 'DM Mono',monospace";
- ctx.fillText(daysToRace()+' DAYS TO RACE DAY',64,1290);
- const url=cv.toDataURL('image/png');
+ ctx.fillText(raceTxt,W-PAD-ctx.measureText(raceTxt).width,cy+28);
+ cy+=64;
+
+ const out=document.createElement('canvas');
+ out.width=W;out.height=Math.min(MAXH,cy+56);
+ out.getContext('2d').drawImage(cv,0,0);
+
+ const url=out.toDataURL('image/png');
  const a2=document.createElement('a');
  a2.href=url;a2.download='week-'+w+'-summary.png';document.body.appendChild(a2);a2.click();a2.remove();
 }
@@ -3294,9 +3383,10 @@ function bindWeek(app,d){
 /* ═══ tape, circuit, library ═══ */
 function renderTape(){
  const el=document.getElementById('ticks');el.innerHTML='';
+ const nowWeek=weekOfToday();
  for(let w=1;w<=state.total;w++){
   const b=document.createElement('button');
-  b.className='tick'+(weekDone(w)?' done':'')+(w===state.week?' here':'')+(w===state.total?' race':'');
+  b.className='tick'+(w<nowWeek?' past':'')+(w===state.week?' here':'')+(w===state.total?' race':'');
   b.setAttribute('aria-label','Week '+w+(w===state.total?', race week':''));
   b.setAttribute('aria-pressed',w===state.week?'true':'false');
   b.innerHTML='<span class="bar"></span><span>'+w+'</span>';
