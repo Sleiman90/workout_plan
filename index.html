@@ -22,7 +22,7 @@
   --rule:#c9c5b9; --track:#bd4326; --lane:#1f3a5c;
   --t1:#3d6f57; --t2:#b0801f; --t3:#a3311c;
   --track-rgb:189,67,38;
-  --r1:#ff6a2e; --r2:#e85a26; --r3:#bd4326; --r4:#93331d; --r5:#6b2513;
+  --r1:#ffffff; --r2:#eed0c9; --r3:#dea192; --r4:#cd725c; --r5:#bd4326;
   /* categorical (unordered) — distinct hues for Easy/Speed/Long/Strength/Rest */
   --c1:#bd4326; --c2:#a3311c; --c3:#7a4a2e; --c4:#c9862e; --c5:#8a7862;
   /* graduated (ordered magnitude) — for 3-tier scales like knee load or session hardness */
@@ -34,7 +34,7 @@ html[data-theme="dark"]{
   --rule:#5c5c5c; --track:#ff7043; --lane:#d98a3d;
   --t1:#5fa885; --t2:#d9a53d; --t3:#e0644a;
   --track-rgb:255,112,67;
-  --r1:#ffab7a; --r2:#ff8659; --r3:#ff7043; --r4:#d9592f; --r5:#b3461f;
+  --r1:#ffffff; --r2:#ffdbd0; --r3:#ffb7a1; --r4:#ff9472; --r5:#ff7043;
   --c1:#ff7043; --c2:#e0644a; --c3:#c98a5c; --c4:#d9a53d; --c5:#a89178;
   --g1:#8a6a4a; --g2:#e0834a; --g3:#ff7043;
 }
@@ -2509,11 +2509,11 @@ function agg(from,to){
 }
 function typeCountRows(counts){
  return [
-  {l:'Easy run',v:counts.easy,c:'var(--c1)'},
-  {l:'Speed',v:counts.speed,c:'var(--c2)'},
-  {l:'Long run',v:counts.long,c:'var(--c3)'},
-  {l:'Strength',v:counts.strength,c:'var(--c4)'},
-  {l:'Rest',v:counts.rest,c:'var(--c5)'}
+  {l:'Easy run',v:counts.easy},
+  {l:'Speed',v:counts.speed},
+  {l:'Long run',v:counts.long},
+  {l:'Strength',v:counts.strength},
+  {l:'Rest',v:counts.rest}
  ];
 }
 function streak(){
@@ -2610,8 +2610,9 @@ function radar(sum,n){
   labels.push('<text x="'+l[0].toFixed(1)+'" y="'+(l[1]+3).toFixed(1)+'" text-anchor="middle" font-size="7" fill="var(--ink-faint)" font-family="DM Mono, monospace">'+keys[i][1]+'</text>');
  }
  const avg=vals.reduce((a,b)=>a+b,0)/vals.filter(v=>v>0).length;
+ const strokeColor=rateColor(Math.max(2,Math.round(avg)));
  return '<div class="radar"><svg viewBox="0 0 140 124">'+rings+
-  '<polygon points="'+poly.join(' ')+'" fill="'+rateColor(Math.round(avg))+'" fill-opacity="0.24" stroke="'+rateColor(Math.round(avg))+'" stroke-width="1.6"/>'+
+  '<polygon points="'+poly.join(' ')+'" fill="'+rateColor(Math.round(avg))+'" fill-opacity="0.24" stroke="'+strokeColor+'" stroke-width="1.6"/>'+
   labels.join('')+'</svg></div>';
 }
 function rateColor(v){return v>0?'var(--r'+Math.max(1,Math.min(5,Math.round(v)))+')':'var(--rule)';}
@@ -2631,9 +2632,9 @@ function kneeIntensityRows(exCount){
   const e=exFind(id);if(!e||!inG(e,'knee'))return;
   const L=loadOf(id)[0];if(L>0)b[L]+=exCount[id];
  });
- return [{l:'Low load',v:b[1],c:'var(--g1)'},
-         {l:'Moderate',v:b[2],c:'var(--g2)'},
-         {l:'High load',v:b[3],c:'var(--g3)'}];
+ return [{l:'Low load',v:b[1]},
+         {l:'Moderate',v:b[2]},
+         {l:'High load',v:b[3]}];
 }
 function panelWeek(){
  const w=state.week,a=agg(w,w);
@@ -2649,19 +2650,19 @@ function panelWeek(){
  ]);
  h+=sec('Sessions by type',hbar(typeCountRows(a.typeCounts),''),'days ticked, by type');
  h+=sec('Distance by session',hbar([
-  {l:'Easy',v:+a.kmType.easy.toFixed(1),c:'var(--c1)'},
-  {l:'Speed',v:+a.kmType.speed.toFixed(1),c:'var(--c2)'},
-  {l:'Long',v:+a.kmType.long.toFixed(1),c:'var(--c3)'}],' km'),'kilometres run');
+  {l:'Easy',v:+a.kmType.easy.toFixed(1)},
+  {l:'Speed',v:+a.kmType.speed.toFixed(1)},
+  {l:'Long',v:+a.kmType.long.toFixed(1)}],' km'),'kilometres run');
  (function(){
   const hrByType=a.weeks[0].hrAvgByType;
   h+=sec('Heart rate',hbar([
-   {l:'Easy',v:hrByType.easy?Math.round(hrByType.easy):0,c:'var(--c1)'},
-   {l:'Speed',v:hrByType.speed?Math.round(hrByType.speed):0,c:'var(--c2)'},
-   {l:'Long',v:hrByType.long?Math.round(hrByType.long):0,c:'var(--c3)'}
+   {l:'Easy',v:hrByType.easy?Math.round(hrByType.easy):0},
+   {l:'Speed',v:hrByType.speed?Math.round(hrByType.speed):0},
+   {l:'Long',v:hrByType.long?Math.round(hrByType.long):0}
   ],' bpm'),'avg bpm by session type');
  })();
  h+=sec('Strength',bigRow([
-  big('Gym days',a.strSess+'<span class="of">/3</span>','done'),
+  big('Gym days',a.strSess,'done'),
   big('Sets',a.sets||0,'total')
  ])+hbar(muscleRows(a.muscles),' ex'),'exercises per muscle group');
  h+=sec('Knee work',bigRow([
@@ -2688,9 +2689,9 @@ function panelAll(){
  h+=sec('Distance per week',lineChart(ws.map(x=>({l:x.w,v:x.km})),v=>v.toFixed(1)+' km'),'total km per week, left→right = week 1→'+w);
  h+=sec('Time on feet trend',lineChart(ws.map(x=>({l:x.w,v:x.secs})),v=>fmtDur(v)),'total time on feet per week, all activities, left→right = week 1→'+w);
  h+=sec('Distance by session',hbar([
-  {l:'Easy',v:+a.kmType.easy.toFixed(1),c:'var(--c1)'},
-  {l:'Speed',v:+a.kmType.speed.toFixed(1),c:'var(--c2)'},
-  {l:'Long',v:+a.kmType.long.toFixed(1),c:'var(--c3)'}],' km'),'kilometres run');
+  {l:'Easy',v:+a.kmType.easy.toFixed(1)},
+  {l:'Speed',v:+a.kmType.speed.toFixed(1)},
+  {l:'Long',v:+a.kmType.long.toFixed(1)}],' km'),'kilometres run');
  h+=sec('Sessions by type',hbar(typeCountRows(a.typeCounts),''),'days ticked, by type, across all weeks');
  h+=sec('Pace trend',lineChart(ws.map(x=>({l:x.w,v:x.pace})),v=>fmtPace(v)+'/km'),'avg running pace per week, left→right = week 1→'+w);
  if(ws.some(x=>x.paceByType.easy))h+=sec('Easy run pace trend',lineChart(ws.map(x=>({l:x.w,v:x.paceByType.easy})),v=>fmtPace(v)+'/km'),'avg pace per week, left→right = week 1→'+w);
@@ -2699,9 +2700,9 @@ function panelAll(){
  h+=sec('Strength volume per week',lineChart(ws.map(x=>({l:x.w,v:x.sets})),v=>Math.round(v)+' sets'),'sets per week, left→right = week 1→'+w);
  h+=sec('Strength by muscle group',hbar(muscleRows(a.muscles),' ex'),'exercises logged');
  h+=sec('Speed sessions by level',hbar([
-  {l:'Steady',v:a.hardness.easy,c:'var(--g1)'},
-  {l:'Standard',v:a.hardness.medium,c:'var(--g2)'},
-  {l:'Peak',v:a.hardness.hard,c:'var(--g3)'}],' wks'),'weeks at each level');
+  {l:'Steady',v:a.hardness.easy},
+  {l:'Standard',v:a.hardness.medium},
+  {l:'Peak',v:a.hardness.hard}],' wks'),'weeks at each level');
  h+=sec('Elevation',bigRow([
   big('Total gain',a.elevGain?Math.round(a.elevGain):'—','m climbed'),
   big('Total loss',a.elevLoss?Math.round(a.elevLoss):'—','m descended')
@@ -2738,7 +2739,7 @@ function panelCompare(){
   ['Time',fmtDur(a.secs),fmtDur(b.secs)],
   ['Avg pace',a.pace?fmtPace(a.pace)+'/km':'—',b.pace?fmtPace(b.pace)+'/km':'—'],
   ['Sessions',a.sessions+'/7',b.sessions+'/7'],
-  ['Strength days',a.strSess+'/3',b.strSess+'/3'],
+  ['Strength days',String(a.strSess),String(b.strSess)],
   ['Sets',a.sets||0,b.sets||0],
   ['Knee circuits',a.circuits,b.circuits],
   ['Knee exercises',a.exs,b.exs],
@@ -3078,9 +3079,9 @@ function pips(val){
  let h='<div class="pips">';
  for(let i=1;i<=5;i++){
   const on=val>=i;
-  h+='<span class="pip'+(on?' on':'')+'"'+(on?' style="background:'+rateColor(val)+';border-color:'+rateColor(val)+'"':'')+'></span>';
+  h+='<span class="pip'+(on?' on':'')+'"'+(on?' style="background:'+rateColor(val)+';border-color:var(--ink-faint)"':'')+'></span>';
  }
- return h+'</div><span class="rate-v" style="color:'+(val?rateColor(val):'var(--ink-faint)')+'">'+(val?val+'/5':'—')+'</span>';
+ return h+'</div><span class="rate-v">'+(val?val+'/5':'—')+'</span>';
 }
 function rateRow(label,cat,R){
  return '<div class="rate"><span class="rate-l">'+label+'</span>'+pips(R.v[cat]||0)+
