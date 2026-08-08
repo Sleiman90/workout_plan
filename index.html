@@ -406,6 +406,8 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 .vb.cur .vb-l{color:var(--track);font-weight:500;}
 .trend{width:100%;}
 .trend svg{width:100%;height:auto;display:block;}
+.trend-pt{cursor:pointer;}
+.trend-pt:focus-visible circle:last-child{stroke:var(--track);stroke-width:2;}
 .heat{display:flex;flex-direction:column;gap:2px;}
 .heat-row{display:flex;gap:2px;align-items:center;}
 .heat-w{font-family:'DM Mono',monospace;font-size:8.5px;color:var(--ink-faint);flex:0 0 16px;text-align:right;}
@@ -2785,7 +2787,14 @@ function lineChart(series,fmt,invert){
   xy.push([x,y,s.l,s.v]);
  });
  const pts=xy.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
- const dots=xy.map(p=>'<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="4.2" fill="var(--track)"><title>Week '+p[2]+': '+fmt(p[3])+'</title></circle>').join('');
+ const escAttr=v=>String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+ const dots=xy.map(p=>{
+  const tip=escAttr('Week '+p[2]+': '+fmt(p[3]));
+  const cx=p[0].toFixed(1),cy=p[1].toFixed(1);
+  return '<g class="trend-pt" tabindex="0" data-tip="'+tip+'" data-cx="'+cx+'" data-cy="'+cy+'">'+
+   '<circle cx="'+cx+'" cy="'+cy+'" r="14" fill="transparent"/>'+
+   '<circle cx="'+cx+'" cy="'+cy+'" r="4.2" fill="var(--track)"/></g>';
+ }).join('');
  const TICKS=4;
  let grid='',labels='';
  for(let i=0;i<=TICKS;i++){
@@ -2799,6 +2808,49 @@ function lineChart(series,fmt,invert){
   '<line x1="'+padL+'" y1="'+padT+'" x2="'+padL+'" y2="'+(VH-padB)+'" stroke="var(--rule)" stroke-width="1.2"/>'+
   '<polyline points="'+pts+'" fill="none" stroke="var(--track)" stroke-width="2.6" stroke-linejoin="round"/>'+
   dots+'</svg></div>';
+}
+function initTrendTooltips(){
+ const ns='http://www.w3.org/2000/svg';
+ document.addEventListener('click',e=>{
+  const pt=e.target.closest?e.target.closest('.trend-pt'):null;
+  if(!pt){
+   document.querySelectorAll('.trend-tip').forEach(t=>t.remove());
+   return;
+  }
+  const svg=pt.closest('svg');if(!svg)return;
+  const key=pt.dataset.cx+'-'+pt.dataset.cy;
+  const already=svg.querySelector('.trend-tip[data-for="'+key+'"]');
+  svg.querySelectorAll('.trend-tip').forEach(t=>t.remove());
+  if(already)return;
+  const cx=+pt.dataset.cx,cy=+pt.dataset.cy;
+  const label=pt.dataset.tip;
+  const vb=svg.viewBox.baseVal;
+  const w=Math.max(60,Math.min(vb.width-8,label.length*7.6+22));
+  const h=26;
+  let tx=cx-w/2;
+  if(tx<vb.x+2)tx=vb.x+2;
+  if(tx+w>vb.x+vb.width-2)tx=vb.x+vb.width-2-w;
+  let ty=cy-h-12;
+  if(ty<vb.y+2)ty=cy+12;
+  const g=document.createElementNS(ns,'g');
+  g.setAttribute('class','trend-tip');
+  g.setAttribute('data-for',key);
+  g.style.pointerEvents='none';
+  const rect=document.createElementNS(ns,'rect');
+  rect.setAttribute('x',tx);rect.setAttribute('y',ty);
+  rect.setAttribute('width',w);rect.setAttribute('height',h);
+  rect.setAttribute('rx',4);
+  rect.setAttribute('fill','var(--ink)');
+  const text=document.createElementNS(ns,'text');
+  text.setAttribute('x',tx+w/2);text.setAttribute('y',ty+h/2+5);
+  text.setAttribute('text-anchor','middle');
+  text.setAttribute('font-size','14');
+  text.setAttribute('font-family',"'DM Mono',monospace");
+  text.setAttribute('fill','var(--card)');
+  text.textContent=label;
+  g.appendChild(rect);g.appendChild(text);
+  svg.appendChild(g);
+ });
 }
 function heat(kind){
  let h='<div class="heat"><div class="heat-row head"><span class="heat-w"></span>'+
@@ -3852,6 +3904,7 @@ function renderAll(){
  await load();
  state.week=weekOfToday();
  applyTheme();
+ initTrendTooltips();
  document.getElementById('exportBtn').onclick = exportData;
  document.getElementById('themeBtn').onclick = async () => {
   settings.theme = settings.theme === 'dark' ? 'light' : 'dark';
