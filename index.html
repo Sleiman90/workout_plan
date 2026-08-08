@@ -1827,7 +1827,7 @@ function orderSelect(d,w,dayId,type){
  let display=type;
  if(type==='long'){
   const raceWeek=(w===state.total);
-  display=raceWeek?'race':(d.satMode==='football'?'football':(d.satMode==='race'?'race':'long'));
+  display=raceWeek?'race':satModeOf(d,dayId);
  }
  return '<select class="ordersel" data-ord="'+dayId+'" aria-label="Change '+DAYLBL[dayId]+'\'s session">'+
   ORDEROPTS.map(o=>'<option value="'+o[0]+'"'+(o[0]===display?' selected':'')+'>'+o[1]+'</option>').join('')+
@@ -1967,8 +1967,18 @@ async function load(){
   if(p.theme)settings.theme=p.theme;
   if(p.panels)panels=Object.assign(panels,p.panels);}}catch(e){}
 }
-async function save(){try{await window.storage.set(KEY,JSON.stringify(state));}catch(e){console.error(e);}}
-async function saveSet(){try{await window.storage.set(SET,JSON.stringify(settings));}catch(e){console.error(e);}}
+async function save(){
+ try{await window.storage.set(KEY,JSON.stringify(state));}
+ catch(e){console.error(e);
+  try{await window.storage.set(KEY,JSON.stringify(state));}catch(e2){console.error('save retry failed',e2);}
+ }
+}
+async function saveSet(){
+ try{await window.storage.set(SET,JSON.stringify(settings));}
+ catch(e){console.error(e);
+  try{await window.storage.set(SET,JSON.stringify(settings));}catch(e2){console.error('saveSet retry failed',e2);}
+ }
+}
 function applyTheme(){
  document.documentElement.setAttribute('data-theme',settings.theme==='dark'?'dark':'light');
  const b=document.getElementById('themeBtn');
@@ -1976,15 +1986,23 @@ function applyTheme(){
 }
 
 function wk(w){
- if(!state.weeks[w])state.weeks[w]={days:{},order:DEFAULT_ORDER.slice(),wedType:(w%2===1?'tempo':'interval'),tier:'medium',
+ if(!state.weeks[w])state.weeks[w]={days:{},order:DEFAULT_ORDER.slice(),wedType:{},tier:{},satMode:{},
    res:{},rate:{},route:{},knee:{},open:{},skip:{}};
  const d=state.weeks[w];
  ['res','rate','route','knee','open','days','skip'].forEach(k=>{if(!d[k])d[k]={};});
  if(!d.order||d.order.length!==7)d.order=DEFAULT_ORDER.slice();
- if(!d.wedType)d.wedType=(w%2===1?'tempo':'interval');
- if(!d.tier)d.tier='medium';
+ // migrate any pre-existing week-level wedType/tier/satMode into per-day maps
+ if(typeof d.wedType==='string'){const sd=slotOf(d,'speed');d.wedType=sd?{[sd]:d.wedType}:{};}
+ if(!d.wedType)d.wedType={};
+ if(typeof d.tier==='string'){const sd=slotOf(d,'speed');d.tier=sd?{[sd]:d.tier}:{};}
+ if(!d.tier)d.tier={};
+ if(typeof d.satMode==='string'){const ld=slotOf(d,'long');d.satMode=ld?{[ld]:d.satMode}:{};}
+ if(!d.satMode)d.satMode={};
  return d;
 }
+function wedTypeOf(d,dayId,w){return (d.wedType&&d.wedType[dayId])||(w%2===1?'tempo':'interval');}
+function tierOf(d,dayId){return (d.tier&&d.tier[dayId])||'medium';}
+function satModeOf(d,dayId){return (d.satMode&&d.satMode[dayId])||'long';}
 function weekDone(w){const d=(state.weeks[w]&&state.weeks[w].days)||{};return CORE.every(k=>d[k]);}
 function exOf(d,day){
  if(!d.knee)d.knee={};
@@ -1993,10 +2011,9 @@ function exOf(d,day){
  return d.knee[day];
 }
 function exFind(id){return KNEE.find(k=>k.id===id);}
-function satMode(w){
- const d=wk(w);
+function satMode(w,dayId){
  if(w===state.total)return 'race';
- return d.satMode||'long';
+ return satModeOf(wk(w),dayId);
 }
 function syncPace(d,day){
  const r=d.res&&d.res[day];if(!r)return;
@@ -2065,9 +2082,10 @@ function computePBs(){
  for(let w=1;w<=state.total;w++){
   const d=state.weeks[w];if(!d)continue;
   const res=d.res||{};
-  const longDay=slotOf(d,'long'),easyDay=slotOf(d,'easy'),speedDay=slotOf(d,'speed');
-  const raceMode=(w===state.total)||d.satMode==='race';
-  if(longDay&&res[longDay]){
+  const easyDay=slotOf(d,'easy'),speedDay=slotOf(d,'speed');
+  slotsOfType(d,'long').forEach(longDay=>{
+   if(!res[longDay])return;
+   const raceMode=(w===state.total)||satModeOf(d,longDay)==='race';
    const r=res[longDay],km=parseFloat(r.dist),t=parseHMS(r.time);
    if(km>0){totalKm+=km;if(!raceMode&&km>longest)longest=km;
     if(t>0){const p=t/km;if(fastestEver===null||p<fastestEver)fastestEver=p;}}
@@ -2075,7 +2093,7 @@ function computePBs(){
     const distOk=raceMode?(isNaN(km)||(km>=4.5&&km<=5.5)):(km>=4.5&&km<=5.5);
     if(distOk&&t<best5k)best5k=t;
    }
-  }
+  });
   if(easyDay&&res[easyDay]){const r=res[easyDay],km=parseFloat(r.dist),t=parseHMS(r.time);
    if(km>0){totalKm+=km;if(t>0){const p=t/km;
     if(fastestEasy===null||p<fastestEasy)fastestEasy=p;
@@ -2161,8 +2179,10 @@ function shift(from,dir,drop){
 function insertWeek(w,copy){
  shift(w,1);
  const src=copy?state.weeks[w+1]:null;
- state.weeks[w]={days:{},wedType:src?src.wedType:(w%2===1?'tempo':'interval'),
-   tier:src?src.tier:'medium',res:{},rate:{},route:{},knee:{},open:{}};
+ state.weeks[w]={days:{},order:DEFAULT_ORDER.slice(),
+   wedType:src&&typeof src.wedType==='object'?JSON.parse(JSON.stringify(src.wedType)):{},
+   tier:src&&typeof src.tier==='object'?JSON.parse(JSON.stringify(src.tier)):{},
+   satMode:{},res:{},rate:{},route:{},knee:{},open:{},skip:{}};
  state.total++;save();renderAll();
 }
 function removeWeek(w){
@@ -2241,7 +2261,7 @@ function autoRate(w){
  // the speed session
  const speedDay=slotOf(d,'speed');
  if(!speedDay||!days[speedDay]){v.speed=0;why.speed='not run';}
- else if(d.wedType==='easy'){
+ else if(wedTypeOf(d,speedDay,w)==='easy'){
   let s=3;const r=res[speedDay]||{},t=parseHMS(r.time),km=parseFloat(r.dist);const b=['swapped for an easy run'];
   if(km>0&&km>=5.0&&km<=9.0)s++;
   if(km>0&&t>0){const p=t/km;
@@ -2251,7 +2271,7 @@ function autoRate(w){
  }
  else{
   let s=3;const r=res[speedDay]||{},t=parseHMS(r.time),km=parseFloat(r.dist);const b=[];
-  const mins=(d.wedType==='tempo'?{easy:32,medium:36,hard:39}:{easy:30,medium:34,hard:38})[d.tier||'medium'];
+  const mins=(wedTypeOf(d,speedDay,w)==='tempo'?{easy:32,medium:36,hard:39}:{easy:30,medium:34,hard:38})[tierOf(d,speedDay)];
   const target=mins*60;
   if(t>0){
    if(Math.abs(t-target)<=target*0.10){s++;b.push('full session');}
@@ -2267,8 +2287,8 @@ function autoRate(w){
 
  // long run
  const longDay=slotOf(d,'long');
- const raceSat=(w===state.total)||d.satMode==='race';
- const footballSat=(w!==state.total)&&d.satMode==='football';
+ const raceSat=(w===state.total)||satModeOf(d,longDay)==='race';
+ const footballSat=(w!==state.total)&&satModeOf(d,longDay)==='football';
  if(!longDay||!days[longDay]){v.long=0;why.long='not run';}
  else if(raceSat){
   let s=4;const r=res[longDay]||{},t=parseHMS(r.time);const b=['time trial run'];
@@ -2314,10 +2334,11 @@ function autoRate(w){
 }
 
 /* ═══ aggregation ═══ */
-function hardnessOf(d){
- if(d.tier==='easy'||d.tier==='medium'||d.tier==='hard')return d.tier;
+function hardnessOf(d,dayId){
+ const t=tierOf(d,dayId);
+ if(t==='easy'||t==='medium'||t==='hard')return t;
  const pool=(settings.customTiers.tempo||[]).concat(settings.customTiers.interval||[]);
- const f=pool.find(c=>c.id===d.tier);
+ const f=pool.find(c=>c.id===t);
  return f?(f.lvl||'medium'):'medium';
 }
 const HARDLBL={easy:'Steady',medium:'Standard',hard:'Peak'};
@@ -2333,8 +2354,8 @@ function weekAgg(w){
    const v=parseFloat(r.dist)||0,t=parseHMS(r.time);
    if(v>0){km+=v;runs++;if(v>longest)longest=v;
     let bucket=type;
-    if(type==='speed'&&d.wedType==='easy')bucket='easy';
-    if(type==='long'&&d.satMode==='football')bucket=(v<10.0?'easy':'long');
+    if(type==='speed'&&wedTypeOf(d,k,w)==='easy')bucket='easy';
+    if(type==='long'&&satModeOf(d,k)==='football')bucket=(v<10.0?'easy':'long');
     kmType[bucket]+=v;
     if(t>0){const p=t/v;if(fastest===null||p<fastest)fastest=p;}}
    secs+=t;
@@ -2359,7 +2380,7 @@ function weekAgg(w){
   if(n>0){circuits++;kneeDay[day]=true;}
  });
  const speedDay=slotOf(d,'speed');
- const hardness=(speedDay&&days[speedDay]&&(d.wedType!=='easy'))?hardnessOf(d):null;
+ const hardness=(speedDay&&days[speedDay]&&(wedTypeOf(d,speedDay,w)!=='easy'))?hardnessOf(d,speedDay):null;
  return {w:w,km:km,secs:secs,runs:runs,kmType:kmType,longest:longest,fastest:fastest,
   sets:sets,muscles:muscles,exCount:exCount,groupCount:groupCount,exs:exs,circuits:circuits,
   warm:warm,cool:cool,sessions:CORE.filter(k=>days[k]).length,hardness:hardness,
@@ -2786,7 +2807,7 @@ function weekCtl(w){
   '<button data-del="'+w+'">Remove this week</button>'+
   '<span class="note">'+note+'</span></div>';
 }
-function daySpec(d,w,type){
+function daySpec(d,w,type,dayId){
  if(type==='push')return {t:'Strength — push',k:'gym',
    det:'Chest, shoulders, triceps. For each, how many exercises and the total sets across all of them — if one was 3 sets and another was 4, that\'s 7.',
    res:{f:[['chest','Chest','text','2'],['shoulders','Shoulders','text','2'],['triceps','Triceps','text','1']]}};
@@ -2800,7 +2821,7 @@ function daySpec(d,w,type){
    det:'<span class="num">5.0–9.0 km</span> in <span class="num">30–55 min</span> at 5:45–6:00/km. Pick the length on the day.',
    res:{f:[['time','Time','text','30:00'],['dist','Distance km','text','5.0'],['pace','Avg pace','text','5:52'],['hr','Avg HR']]}};
  if(type==='speed'){
-  const wmode=d.wedType||'tempo',tempo=wmode==='tempo',bail=wmode==='easy';
+  const wmode=wedTypeOf(d,dayId,w),tempo=wmode==='tempo',bail=wmode==='easy';
   return {t:bail?'Easy run':(tempo?'Tempo':'Intervals'),k:bail?'run':'speed',
    det:bail
      ?'Legs are flat, so today is aerobic only. <span class="num">5.0–9.0 km</span> at <span class="num">5:45–6:00/km</span>, conversational the whole way. A skipped quality session costs less than a bad one.'
@@ -2809,7 +2830,7 @@ function daySpec(d,w,type){
  }
  if(type==='long'){
   const raceWeek=(w===state.total);
-  const mode=raceWeek?'race':satMode(w);
+  const mode=raceWeek?'race':satMode(w,dayId);
   if(mode==='race')return {t:raceWeek?'Race — sub-20 attempt':'5 km time trial',k:'race',
    det:'10 min warm-up and drills → <span class="num">5 km flat out</span>, target <span class="num">3:59/km</span> → 10 min cool-down',
    race:true,
@@ -2831,10 +2852,7 @@ function daySpec(d,w,type){
 
 function renderWeek(){
  const w=state.week,d=wk(w),race=(w===state.total);
- const wmode=d.wedType||'tempo';
- const tempo=wmode==='tempo';
- const bail=wmode==='easy';
- const tiers=tempo?TEMPO:INTERVAL;
+ renderIdentity();
 
  let h='<div class="week-head"><div><div class="week-no">Week '+w+'</div>'+
   '<div class="week-dates">'+weekRange(w)+'</div></div>'+
@@ -2843,7 +2861,7 @@ function renderWeek(){
 
  CORE.forEach((dayId,idx)=>{
   const type=d.order[idx];
-  const day=Object.assign({id:dayId,tag:DAYLBL[dayId]},daySpec(d,w,type));
+  const day=Object.assign({id:dayId,tag:DAYLBL[dayId]},daySpec(d,w,type,dayId));
   const on=!!d.days[day.id];
   const isKnee=KNEE_TYPES.indexOf(type)>=0;
   const opened=!!d.open[day.id];
@@ -2857,11 +2875,14 @@ function renderWeek(){
    (isKnee?'<div class="day-fin">Knee circuit day</div>':'');
 
   if(day.speed){
-   const curLvl=tiers.some(t=>t.id===d.tier)?d.tier:(((settings.customTiers[wmode]||[]).find(c=>c.id===d.tier)||{}).lvl||'medium');
+   const wmode=wedTypeOf(d,dayId,w),tempo=wmode==='tempo',bail=wmode==='easy';
+   const tiers=tempo?TEMPO:INTERVAL;
+   const dTier=tierOf(d,dayId);
+   const curLvl=tiers.some(t=>t.id===dTier)?dTier:(((settings.customTiers[wmode]||[]).find(c=>c.id===dTier)||{}).lvl||'medium');
    const curLvlName=(tiers.find(t=>t.id===curLvl)||{}).n||'Standard';
    daysHtml+='<div class="seg" role="group" aria-label="Session type">'+
-    '<button data-wed="tempo" class="'+(wmode==='tempo'?'on':'')+'" aria-pressed="'+(wmode==='tempo')+'">Tempo</button>'+
-    '<button data-wed="interval" class="'+(wmode==='interval'?'on':'')+'" aria-pressed="'+(wmode==='interval')+'">Intervals</button></div>'+
+    '<button data-wed="'+dayId+'|tempo" class="'+(wmode==='tempo'?'on':'')+'" aria-pressed="'+(wmode==='tempo')+'">Tempo</button>'+
+    '<button data-wed="'+dayId+'|interval" class="'+(wmode==='interval'?'on':'')+'" aria-pressed="'+(wmode==='interval')+'">Intervals</button></div>'+
     '<span class="hardness">today: '+curLvlName+'</span>';
    if(!bail){
    daysHtml+='<div class="tiers">';
@@ -2870,33 +2891,33 @@ function renderWeek(){
     const variants=[base].concat(customs);
     const open=curLvl===base.id;
     daysHtml+='<div class="lvlgroup'+(open?' on':'')+'">';
-    daysHtml+='<button class="lvlhead '+base.c+'" data-lvlgroup="'+base.id+'" aria-expanded="'+open+'">'+
+    daysHtml+='<button class="lvlhead '+base.c+'" data-lvlgroup="'+dayId+'|'+base.id+'" aria-expanded="'+open+'">'+
      '<span class="tier-name"><span class="tier-dot"></span>'+base.n+
      (variants.length>1?'<span class="tier-mine">'+variants.length+'</span>':'')+'</span>'+
      '<span class="tier-dur">'+base.d+'</span></button>';
     if(open){
      daysHtml+='<div class="lvlbody">';
-     variants.forEach(v=>{const s=d.tier===v.id,mine=v.id!==base.id;
-      daysHtml+='<button class="variant'+(s?' on':'')+'" data-tier="'+v.id+'" aria-pressed="'+s+'">'+
+     variants.forEach(v=>{const s=dTier===v.id,mine=v.id!==base.id;
+      daysHtml+='<button class="variant'+(s?' on':'')+'" data-tier="'+dayId+'|'+v.id+'" aria-pressed="'+s+'">'+
        (variants.length>1?'<div class="variant-name">'+(mine?esc(v.n)+' <span class="tier-mine">yours</span>':'Original')+
         '<span class="tier-dur">'+(mine?esc(v.d):v.d)+'</span></div>':'')+
        '<div class="tier-struct">'+(mine?esc(v.s):v.s)+'</div>'+
        (v.e?'<div class="tier-ext">'+v.e+'</div>':'')+
        (mine?'<span class="variant-actions">'+
-         '<span class="tier-edit" data-tieredit="'+wmode+'|'+v.id+'" role="button" aria-label="Edit this session">edit</span>'+
-         '<span class="tier-del" data-tierdel="'+wmode+'|'+v.id+'" role="button" aria-label="Remove this session">remove</span>'+
+         '<span class="tier-edit" data-tieredit="'+dayId+'|'+wmode+'|'+v.id+'" role="button" aria-label="Edit this session">edit</span>'+
+         '<span class="tier-del" data-tierdel="'+dayId+'|'+wmode+'|'+v.id+'" role="button" aria-label="Remove this session">remove</span>'+
         '</span>':'')+
        '</button>';
      });
      const editingHere=editingTierId&&(settings.customTiers[wmode]||[]).some(c=>c.id===editingTierId&&c.lvl===base.id);
      const editVals=editingHere?(settings.customTiers[wmode]||[]).find(c=>c.id===editingTierId):null;
-     daysHtml+=customForm===(wmode+':'+base.id)
+     daysHtml+=customForm===(dayId+'|'+wmode+':'+base.id)
       ? '<div class="tier-add"><input type="text" id="ctName" placeholder="Name, e.g. Fartlek" maxlength="60" value="'+(editVals?esc(editVals.n):'')+'">'+
         '<input type="text" id="ctDur" placeholder="Duration, e.g. 35 min" maxlength="20" value="'+(editVals?esc(editVals.d):'')+'">'+
         '<textarea id="ctStruct" placeholder="Structure — warm-up, main set, cool-down…" maxlength="400">'+(editVals?esc(editVals.s):'')+'</textarea>'+
-        '<div class="tier-add-row"><button class="pick-btn" data-ctsave="'+wmode+':'+base.id+'">'+(editVals?'Update session':'Save session')+'</button>'+
+        '<div class="tier-add-row"><button class="pick-btn" data-ctsave="'+dayId+'|'+wmode+'|'+base.id+'">'+(editVals?'Update session':'Save session')+'</button>'+
         '<button class="tier-add-cancel" data-ctcancel="1">Cancel</button></div></div>'
-      : '<button class="addvariant" data-ctopen="'+wmode+':'+base.id+'">+ Add another '+base.n.toLowerCase()+' session</button>';
+      : '<button class="addvariant" data-ctopen="'+dayId+'|'+wmode+':'+base.id+'">+ Add another '+base.n.toLowerCase()+' session</button>';
      daysHtml+='</div>';
     }
     daysHtml+='</div>';
@@ -2929,10 +2950,12 @@ function renderWeek(){
  h+=acc('days','Sessions',ticked+'/7 ticked'+(allDone?' ✓':''),daysHtml,allDone);
 
  const R=autoRate(w);
+ const speedSlot=slotOf(d,'speed');
+ const speedLbl=speedSlot?(wedTypeOf(d,speedSlot,w)==='easy'?DAYLBL[speedSlot]:(wedTypeOf(d,speedSlot,w)==='tempo'?'Tempo':'Intervals')):'Speed';
  h+=acc('rate','How it went',(R.v.overall?R.v.overall+'/5 overall':'nothing logged'),
   '<p class="ref-sub" style="margin:10px 0 12px">Scored from what you logged — nothing to fill in.</p><div class="rates">'+
   rateRow('Overall','overall',R)+rateRow('Easy runs','easy',R)+rateRow('Strength','strength',R)+
-  rateRow(bail?'Wednesday':(tempo?'Tempo':'Intervals'),'speed',R)+rateRow('Long run','long',R)+rateRow('Rest day','rest',R)+
+  rateRow(speedLbl,'speed',R)+rateRow('Long run','long',R)+rateRow('Rest day','rest',R)+
   '</div>');
 
  const A1=agg(w,w);
@@ -2944,8 +2967,8 @@ function renderWeek(){
 function bindWeek(app,d){
  app.querySelectorAll('[data-ord]').forEach(sel=>sel.onchange=e=>{
   const val=e.target.value, dayId=e.target.dataset.ord;
-  if(val==='race'||val==='football'){swapType(d,dayId,'long');d.satMode=val;}
-  else if(val==='long'){swapType(d,dayId,'long');d.satMode='long';}
+  if(val==='race'||val==='football'){swapType(d,dayId,'long');d.satMode[dayId]=val;}
+  else if(val==='long'){swapType(d,dayId,'long');d.satMode[dayId]='long';}
   else{swapType(d,dayId,val);}
   save();renderWeek();});
  app.querySelectorAll('.tickbox').forEach(cb=>cb.onchange=e=>{
@@ -2961,8 +2984,14 @@ function bindWeek(app,d){
  });
  app.querySelectorAll('[data-ins]').forEach(b=>b.onclick=()=>insertWeek(+b.dataset.ins,false));
  app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>removeWeek(+b.dataset.del));
- app.querySelectorAll('[data-wed]').forEach(b=>b.onclick=()=>{d.wedType=b.dataset.wed;save();renderWeek();});
- app.querySelectorAll('[data-lvlgroup]').forEach(b=>b.onclick=()=>{d.tier=b.dataset.lvlgroup;save();renderWeek();});
+ app.querySelectorAll('[data-wed]').forEach(b=>b.onclick=()=>{
+  const [dayId,mode]=b.dataset.wed.split('|');
+  d.wedType[dayId]=mode;save();renderWeek();
+ });
+ app.querySelectorAll('[data-lvlgroup]').forEach(b=>b.onclick=()=>{
+  const [dayId,lvl]=b.dataset.lvlgroup.split('|');
+  d.tier[dayId]=lvl;save();renderWeek();
+ });
  app.querySelectorAll('[data-skip]').forEach(sel=>sel.onchange=e=>{
   const dayId=e.target.dataset.skip,val=e.target.value;
   const prev=d.skip[dayId];const prevNote=(prev&&typeof prev==='object')?prev.note:'';
@@ -2986,20 +3015,23 @@ function bindWeek(app,d){
   swapType(d2,pd,to);
   await save();renderWeek();
  });
- app.querySelectorAll('[data-tier]').forEach(b=>b.onclick=()=>{d.tier=b.dataset.tier;save();renderWeek();});
+ app.querySelectorAll('[data-tier]').forEach(b=>b.onclick=()=>{
+  const [dayId,variantId]=b.dataset.tier.split('|');
+  d.tier[dayId]=variantId;save();renderWeek();
+ });
  app.querySelectorAll('[data-ctopen]').forEach(b=>b.onclick=()=>{customForm=b.dataset.ctopen;editingTierId=null;renderWeek();});
  app.querySelectorAll('[data-ctcancel]').forEach(b=>b.onclick=()=>{customForm=null;editingTierId=null;renderWeek();});
  app.querySelectorAll('[data-tieredit]').forEach(b=>b.onclick=(e)=>{
   e.stopPropagation();
-  const [wmodeKey,id]=b.dataset.tieredit.split('|');
+  const [dayId,wmodeKey,id]=b.dataset.tieredit.split('|');
   const entry=(settings.customTiers[wmodeKey]||[]).find(t=>t.id===id);
   if(!entry)return;
   editingTierId=id;
-  customForm=wmodeKey+':'+entry.lvl;
+  customForm=dayId+'|'+wmodeKey+':'+entry.lvl;
   renderWeek();
  });
  app.querySelectorAll('[data-ctsave]').forEach(b=>b.onclick=async()=>{
-  const [wmodeKey,lvl]=b.dataset.ctsave.split(':');
+  const [dayId,wmodeKey,lvl]=b.dataset.ctsave.split('|');
   const name=(document.getElementById('ctName').value||'').trim();
   const dur=(document.getElementById('ctDur').value||'').trim();
   const struct=(document.getElementById('ctStruct').value||'').trim();
@@ -3017,16 +3049,16 @@ function bindWeek(app,d){
   settings.customTiers[wmodeKey].push({id:id,n:name,d:dur||'—',s:struct,lvl:lvl});
   await saveSet();
   customForm=null;
-  d.tier=id;save();
+  d.tier[dayId]=id;save();
   renderWeek();
  });
  app.querySelectorAll('[data-tierdel]').forEach(b=>b.onclick=async(e)=>{
   e.stopPropagation();
-  const [wmodeKey,id]=b.dataset.tierdel.split('|');
+  const [dayId,wmodeKey,id]=b.dataset.tierdel.split('|');
   if(!confirm('Remove this session from your list?'))return;
   const removed=(settings.customTiers[wmodeKey]||[]).find(t=>t.id===id);
   settings.customTiers[wmodeKey]=(settings.customTiers[wmodeKey]||[]).filter(t=>t.id!==id);
-  if(d.tier===id)d.tier=(removed&&removed.lvl)||'medium';
+  if(d.tier[dayId]===id)d.tier[dayId]=(removed&&removed.lvl)||'medium';
   if(editingTierId===id){editingTierId=null;customForm=null;}
   await saveSet();save();
   renderWeek();
@@ -3140,7 +3172,7 @@ function renderIdentity(){
   '<div class="idchip race"><span class="idk">Race day</span><span class="idv">'+raceChip+'</span></div>';
 }
 function renderAll(){
- renderTape();renderProgress();renderWeek();renderLibSection();setQuote();renderIdentity();
+ renderTape();renderProgress();renderWeek();renderLibSection();setQuote();
  const here=document.querySelector('.tick.here');
  if(here)here.scrollIntoView({inline:'center',block:'nearest'});
 }
@@ -3165,6 +3197,10 @@ function renderAll(){
  document.getElementById('pkDone').onclick=closePicker;
  document.getElementById('picker').addEventListener('click',e=>{if(e.target.id==='picker')closePicker();});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('picker').hidden)closePicker();});
+ document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){clearTimeout(saveTimer);save();saveSet();}
+ });
+ window.addEventListener('pagehide',()=>{clearTimeout(saveTimer);save();saveSet();});
  renderAll();
 })();
 </script>
