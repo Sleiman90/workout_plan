@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>22:40 → Sub-20 · 24-Week Build</title>
+<title>The Hybrid Engine</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -367,6 +367,14 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
   color:var(--ink-faint);cursor:pointer;margin-bottom:-1px;}
 .stabs button.on{color:var(--ink);border-bottom-color:var(--track);}
 .stabs button:focus-visible{outline:2px solid var(--track);outline-offset:-2px;}
+.rangepick{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:-6px 0 16px;}
+.rangepick label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-faint);}
+.rangepick select{background:var(--card);border:1px solid var(--rule);border-radius:2px;
+  padding:5px 7px;font-family:'DM Mono',monospace;font-size:11.5px;color:var(--ink);cursor:pointer;}
+.rangepick button{background:none;border:1px solid var(--rule);border-radius:2px;padding:5px 9px;
+  font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--track);cursor:pointer;}
 .sblock{margin-top:20px;}
 .sblock h5{font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
   color:var(--ink);margin-bottom:10px;font-weight:700;}
@@ -647,6 +655,35 @@ input.field-bad{border-color:var(--t3)!important;outline:1.5px solid var(--t3);o
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 @media (min-width:520px){.pbgrid{grid-template-columns:repeat(4,1fr);}}
 
+/* countdowns */
+.counters-block{background:var(--card);border:1px solid var(--rule);border-radius:2px;
+  padding:14px 14px 16px;margin:16px 0;}
+.counters-h{font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink);font-weight:700;margin-bottom:11px;}
+.counters-list{display:flex;flex-direction:column;gap:9px;margin-bottom:12px;}
+.counter-card{position:relative;background:var(--stock);border:1px solid var(--rule);border-radius:3px;
+  padding:14px 16px 15px;}
+.counter-dist{font-family:'Anton',sans-serif;font-size:19px;letter-spacing:.01em;color:var(--track);}
+.counter-days{font-family:'Anton',sans-serif;font-size:38px;line-height:1.2;color:var(--ink);margin-top:2px;}
+.counter-date{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--ink-faint);margin-top:3px;}
+.counter-del{position:absolute;top:8px;right:9px;background:none;border:none;cursor:pointer;
+  font-size:17px;line-height:1;color:var(--ink-faint);padding:2px 4px;}
+.counter-del:hover{color:var(--track);}
+#counterToggleBtn{width:100%;background:none;border:1.5px dashed var(--rule);border-radius:2px;
+  padding:9px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--track);cursor:pointer;}
+.counter-add{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:9px;}
+.counter-add[hidden]{display:none;}
+.counter-add input[type="date"],.counter-add select{background:var(--stock);border:1px solid var(--rule);
+  border-radius:2px;padding:7px 8px;font-family:'DM Mono',monospace;font-size:11.5px;color:var(--ink);
+  flex:1 1 auto;min-width:0;}
+.counter-add input[type="date"]{color-scheme:light;}
+html[data-theme="dark"] .counter-add input[type="date"]{color-scheme:dark;}
+.counter-add button{background:var(--track);color:#fff;border:none;border-radius:2px;padding:7px 14px;
+  font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  cursor:pointer;flex:0 0 auto;}
+.counter-add #counterCancelBtn{background:none;color:var(--ink-soft);border:1px solid var(--rule);}
+
 /* Race PBs accordion — per-distance heading and stat row */
 .pbrace{margin-bottom:4px;}
 .pbrace-t{font-family:'Anton',sans-serif;font-size:22px;letter-spacing:.01em;color:var(--ink);margin-bottom:10px;}
@@ -722,6 +759,23 @@ html[data-theme="dark"] .pain-action{
     </div>
     </div>
   </div>
+
+  <section class="counters-block">
+    <div class="counters-h">Countdowns</div>
+    <div id="countersList" class="counters-list"></div>
+    <button type="button" id="counterToggleBtn">+ Add a countdown</button>
+    <div class="counter-add" id="counterForm" hidden>
+      <input type="date" id="counterDate" aria-label="Countdown date">
+      <select id="counterDist" aria-label="Countdown distance">
+        <option value="5k">5K</option>
+        <option value="10k">10K</option>
+        <option value="half">Half Marathon</option>
+        <option value="marathon">Marathon</option>
+      </select>
+      <button type="button" id="counterAddBtn">Add</button>
+      <button type="button" id="counterCancelBtn">Cancel</button>
+    </div>
+  </section>
 
   <div class="tape-block">
     <div class="tape-head"><span>Weeks</span></div>
@@ -1861,8 +1915,9 @@ function orderSelect(d,w,dayId,type){
   '</select>';
 }
 
-let state={week:1,total:24,weeks:{},painLog:{}}, settings={favorites:{knee:[],hip:[],ankle:[],run:[],warm:[],cool:[]},customTiers:{tempo:[],interval:[]},theme:'light'};
+let state={week:1,total:20,weeks:{},painLog:{}}, settings={favorites:{knee:[],hip:[],ankle:[],run:[],warm:[],cool:[]},customTiers:{tempo:[],interval:[]},theme:'light'};
 let saveTimer=null, libFilter='all', pkFilter='all', pkMode=null, pkDay=null, statTab='week';
+let statRangeFrom=null, statRangeTo=null;
 let compareA=null, compareB=null;
 let panels={days:true,rate:false,stats:false,lib:false,pbs:false};
 let customForm=null; // 'tempo:easy' | 'tempo:medium' | ... | null — which level's add/edit form is open
@@ -1939,125 +1994,258 @@ function acc(key,title,meta,body,done){
 }
 
 const LINES=[
- "Thirty-two seconds a kilometre. Six months. That is the whole problem.",
- "The easy runs are not the filler between the hard ones. They are what makes the hard ones possible.",
- "Nobody negative-splits by accident. You practise it or you fade.",
- "The tier you pick on a bad Wednesday matters more than the one you pick on a good one.",
- "Fitness is built on Tuesday and collected in January.",
- "A session you can repeat next week beats a session you have to recover from for three.",
- "Your knees do not care how motivated you are. They care how much you loaded them last week.",
- "Twenty-four Saturdays. That is the entire budget. Spend them.",
- "The clock does not know you were tired. Run the effort, not the ego.",
- "Consistency is not a personality trait. It is a series of ordinary decisions.",
- "You are allowed a slow week. You are not allowed a missing month.",
- "Pace is a skill before it is a fitness level.",
- "Hard days hard, easy days easy. The middle is where progress goes to die.",
- "The last kilometre is decided in the first four.",
- "Every rep of the boring hip work is a kilometre you get to keep later.",
- "Turning up flat and doing the Steady tier is still turning up.",
- "You do not rise to the goal. You fall to the level of your ordinary Tuesday.",
- "Sub-20 is not fast. It is just a long time being consistent.",
- "Warm up like the session matters. It does.",
- "Rest is not the reward for training. It is part of the training.",
- "The gap between where you are and where you are going is 32 seconds and a lot of Wednesdays.",
- "Run the plan you have, not the plan you wish you were fit enough for.",
- "Finish every easy run feeling like you could do it again. That is the point.",
- "Nothing in this build is heroic. That is exactly why it works.",
- "Motivation gets you out the door once. Discipline gets you out the door on the days motivation doesn't show.",
- "You don't need to feel ready. You need to start, and readiness catches up.",
- "Discipline is just motivation you don't have to negotiate with anymore.",
- "The version of you that skips today is negotiating with the version of you that has to run it tomorrow anyway.",
- "Small and repeated beats big and occasional, every single time.",
- "Nobody regrets the run they finished. Plenty regret the one they talked themselves out of.",
- "You are not behind. You are exactly as far along as the work you've actually done.",
- "The habit is the goal. The time on the clock is just proof it's working.",
- "Willpower is a bad long-term plan. A schedule you don't have to think about is a good one.",
- "Show up on the days you don't want to. That's the whole skill.",
- "Progress hides in weeks that felt like nothing happened.",
- "You're not chasing a feeling. You're building a pattern the feeling eventually follows.",
- "Comparison is the fastest way to talk yourself out of a program that's actually working.",
- "The plan doesn't care how you feel about it. Do it anyway and see what happens.",
- "Discipline looks boring from the outside. That's exactly why it works.",
- "You can't out-motivate a bad routine. Fix the routine.",
- "Every streak was once just one day, followed by a second one.",
- "The body adapts to what you repeat, not to what you intend.",
- "Lace up on the bad days. The good days don't need convincing.",
- "A body that moves daily ages differently than one that doesn't.",
- "Strength training after thirty isn't vanity. It's maintenance on the machine you'll need for decades.",
- "Sleep is a training variable, not a lifestyle choice.",
- "The best recovery tool is the one you'll actually use tonight.",
- "You don't need a perfect diet. You need a repeatable one.",
- "Hydration is unglamorous and it's still half the reason your legs feel heavy.",
- "Health is built in the boring hours — the ones with no witnesses.",
- "Your future joints are being negotiated with right now, in how you load them today.",
- "Nobody's deathbed regret is 'I stretched too much.'",
- "The gym doesn't care what you looked like last year. Only what you do today.",
- "Fitness is the tax you pay for freedom of movement later.",
- "A rest day is a decision, not a failure to have one.",
- "You are one workout away from a better mood, whether you believe it right now or not.",
- "The version of health that lasts is the one that fits into a normal life.",
- "Eat like someone who's still training tomorrow.",
- "The mirror lies slower than the scale but tells the truth eventually.",
- "Consistency in the gym is a quiet form of self-respect.",
- "Nobody built a strong back in a week. Nobody built a weak one in a week either.",
- "Fatigue lies to you about what you're capable of. Trust the plan over the feeling.",
- "Every pro was once a beginner who didn't quit on a bad week.",
- "You don't have to love the process. You just have to keep doing it.",
- "The obstacle isn't the lack of time. It's the lack of a decision.",
- "Discomfort now is just deposit for comfort later.",
- "Your competition isn't the person next to you. It's the version of you that almost skipped today.",
- "Momentum is easier to keep than to rebuild. Protect it.",
- "The days you don't feel like it are the days that actually count.",
- "Nobody talks about the thousand ordinary days before the one everyone notices.",
- "Confidence isn't a feeling you wait for. It's a byproduct of things you've already done.",
- "What you repeat, you become. Choose the repeats carefully.",
- "The finish line doesn't care about your excuses on the way there.",
- "You are training two things at once: the body, and the mind that has to keep showing up for it.",
- "A goal without a routine behind it is just a wish with a deadline.",
- "The hardest part of any session is usually putting the shoes on.",
- "Long-term thinking is the only kind that actually gets you anywhere.",
- "You don't find discipline. You practise it, badly, until it gets easier.",
- "Nobody sees the rep that almost didn't happen. Do it anyway.",
- "The plan works if you work the plan. That's the whole secret, disappointingly.",
- "You're not too old, too busy, or too tired. You're just deciding right now.",
- "Identity follows action, not the other way around — you become a runner by running.",
- "One bad week doesn't erase ten good ones, unless you let it turn into two bad months.",
- "The body keeps the receipts. Every session, every skip, all of it.",
- "Do the work today for the person you'll be in six months, not the one you are right now.",
- "Injuries are usually just unpaid recovery debt, called in all at once.",
- "Training smart and training hard aren't opposites. The smart part is knowing which day is which.",
- "The number on the watch is feedback, not a verdict on your worth.",
- "You are allowed to be proud of a slow run that happened over a fast one that didn't.",
- "Nothing about a healthy life is efficient. That's fine. Do it anyway.",
- "The goal isn't to never want to quit. It's to keep going after you did.",
- "Every habit you have now was once uncomfortable and new. This one will be too, and then it won't.",
- "A PB isn't a single day. It's every ordinary day that led up to it, cashed in at once.",
- "Whatever distance you're chasing, the training underneath it looks almost identical: show up, do the work, recover, repeat.",
+ "Discipline is choosing between what you want now and what you want most.",
+ "Motivation starts the work. Habit finishes it.",
+ "You don't need more time. You need a decision.",
+ "Small daily choices compound into a life you either love or regret.",
+ "The person you're becoming is built in the sessions nobody sees.",
+ "Consistency beats intensity every time intensity shows up alone.",
+ "Discipline is remembering what you want.",
+ "Every day you show up is a vote for the person you're trying to become.",
+ "The work doesn't care about your mood. Show up anyway.",
+ "You are the sum of what you repeat, not what you intend.",
+ "Nobody drifts into shape. You walk there, one session at a time.",
+ "A goal without a routine is just a wish with a deadline.",
+ "The gap between where you are and where you want to be is called practice.",
+ "Progress is rarely dramatic. It's just today, done properly, again.",
+ "You won't feel ready. Start anyway \u2014 readiness is a byproduct, not a prerequisite.",
+ "The comeback is always stronger than the setback, if you let it be.",
+ "Discipline feels like restriction until it feels like freedom.",
+ "What you tolerate, you become. Choose your standards carefully.",
+ "The best time to start was months ago. The second best time is today.",
+ "Nobody becomes disciplined. They practise being disciplined, badly, until it sticks.",
+ "You can't save motivation for later. Spend it today or lose it.",
+ "The work is the reward. The result is just proof.",
+ "Every excuse you make gets easier to make again.",
+ "Willpower runs out. Systems don't. Build a system.",
+ "Growth hides in the repetitions that felt too small to matter.",
+ "You are not behind. You are exactly where your effort has placed you.",
+ "The version of you a year from now is being built right now, quietly.",
+ "Trust the process on the days you can't trust the results.",
+ "The obstacle you keep avoiding is usually the one worth facing.",
+ "It's not about having time. It's about making the decision non-negotiable.",
+ "Running doesn't build character. It reveals it, one kilometre at a time.",
+ "Every runner was once a beginner who refused to stay one.",
+ "The road doesn't care about your excuses. Lace up anyway.",
+ "Some runs are about fitness. Others are about proving you still can.",
+ "Pace is a decision made in the first kilometre and defended in the last.",
+ "The best runners aren't the fastest. They're the ones who never stopped.",
+ "Your legs will argue. Let your training make the final call.",
+ "Running teaches patience in a world built for shortcuts.",
+ "The miles you don't want to run are the ones that matter most.",
+ "A bad run is still training. A skipped run is just a gap.",
+ "You don't find time to run. You take it, deliberately, from somewhere else.",
+ "Every kilometre banked today is a kilometre you don't have to find later.",
+ "Running is the simplest sport and the hardest habit.",
+ "The watch measures pace. It doesn't measure the courage it took to start.",
+ "You're not running from something. You're running toward who you're becoming.",
+ "Some days you run for time. Some days you run for sanity. Both count.",
+ "The road rewards the runner who shows up when the weather doesn't cooperate.",
+ "Nobody negative-splits by accident. It's practised, not stumbled into.",
+ "Easy runs build the engine hard runs get to use.",
+ "Fitness is rented, not owned. The rent is paid in consistent miles.",
+ "The runner who quits in the mind quits long before the legs do.",
+ "You run the paces in training so race day just feels familiar.",
+ "A taper isn't rest. It's the last ingredient in a recipe you've been cooking for months.",
+ "Your splits don't lie, but they don't tell the whole story either.",
+ "The best pace is the one you can still hold when it stops feeling easy.",
+ "Every long run ends the same way it starts: one step, repeated.",
+ "You don't rise to race day. You fall to the level of your training.",
+ "Running rewards patience more than talent.",
+ "The hills don't get easier. You get stronger.",
+ "A single run won't make you a runner. Refusing to stop will.",
+ "The 5K is short enough to hide nothing and long enough to expose everything.",
+ "Twenty minutes of honesty tells you more about your fitness than a month of guessing.",
+ "A 5K PB is built on track sessions nobody was watching.",
+ "The 5K punishes hesitation. Commit to the pace or lose to it.",
+ "Every second in a 5K costs more than it does in any other distance.",
+ "The 5K is over before you've finished deciding how hard to push. Decide earlier.",
+ "Fast 5K running starts with slow, patient interval work.",
+ "The 5K PB lives in the last kilometre, where everyone else slows down.",
+ "There's nowhere to hide in a 5K. Pace honestly or pay for it by kilometre two.",
+ "A 5K is a sprint wearing a distance runner's disguise.",
+ "The gap between a good 5K and a great one is usually belief, held one kilometre longer.",
+ "Every barrier \u2014 thirty minutes, twenty-five, twenty \u2014 is just a pace you haven't held yet.",
+ "The 5K forgives nothing and rewards everything you did in training.",
+ "Your 5K time is a receipt for the speed work you either did or skipped.",
+ "In a 5K, the finish line arrives faster than your doubts expect it to.",
+ "Every 5K PB was once somebody's uncomfortable pace.",
+ "The best 5K runners treat easy days as seriously as the hard ones.",
+ "A 5K is short enough to attempt often and long enough to teach you something every time.",
+ "Chase the 5K PB in training, not just on race day.",
+ "The 5K doesn't ask if you're ready. It just starts.",
+ "The 10K sits exactly where speed meets endurance, and neither one alone gets you through it.",
+ "A 10K PB rewards the runner who's patient for the first half and brave for the second.",
+ "Ten kilometres is long enough to make a mistake and short enough to still recover from it.",
+ "The 10K is a pacing exam disguised as a race.",
+ "Somewhere around kilometre seven, the 10K decides who trained properly.",
+ "A strong 10K is built on weeks that felt unremarkable at the time.",
+ "The 10K doesn't reward heroics in kilometre one. It rewards discipline there.",
+ "Ten kilometres of honest pacing beats five of heroics and five of survival.",
+ "The 10K PB is earned in tempo runs, not just on race day.",
+ "Respect the middle kilometres of a 10K \u2014 that's where races are actually won.",
+ "A 10K is close enough to sprint and far enough to punish anyone who tries.",
+ "The difference between a good and great 10K is usually the pacing of kilometre one.",
+ "Ten kilometres is long enough to think, which is exactly the problem.",
+ "The 10K asks you to be patient with your legs and honest with your watch.",
+ "Even splits in a 10K are a skill, not a coincidence.",
+ "The 10K punishes the runner who spent their courage in the first kilometre.",
+ "A well-paced 10K feels hard the whole way and unbearable only at the end. That's correct.",
+ "Ten kilometres teaches you the cost of every second you go out too fast.",
+ "The 10K PB is a quiet argument between your legs and your patience. Let patience win early.",
+ "Every good 10K starts with a first kilometre you're not proud of yet \u2014 because it was controlled.",
+ "The half marathon starts fast for everyone and finishes honest for no one who went out too hard.",
+ "Mile ten is where the half marathon actually begins.",
+ "A half marathon is long enough to expose bad pacing and short enough to still recover from it if you're smart.",
+ "The half rewards the runner who trained the boring middle-distance runs, not just the long ones.",
+ "Half marathon fitness is built on weeks, not weekends.",
+ "The half marathon wall isn't as brutal as the marathon's, but it's just as real if you disrespect the distance.",
+ "Somewhere past the halfway point, the half marathon asks what you actually trained for.",
+ "The half marathon PB is a pacing puzzle solved months before race day.",
+ "Twenty-one kilometres is long enough to teach patience and short enough to still reward speed.",
+ "The half marathon lives in the space between a 10K's speed and a marathon's patience.",
+ "Respect the taper before a half marathon \u2014 the fitness is already banked.",
+ "A half marathon goes wrong in the first five kilometres and gets discovered in the last five.",
+ "The half marathon doesn't forgive an ego-driven start.",
+ "Train the pace, not just the distance, and the half marathon stops being intimidating.",
+ "The half marathon is close enough to a long training run to underestimate and far enough to regret it.",
+ "Nutrition strategy for a half marathon is rehearsed in training, never improvised on race day.",
+ "The half marathon's hardest kilometre is usually the one right after you start believing it's going fine.",
+ "A patient first half and a brave second half is the whole strategy.",
+ "The half marathon PB isn't won at the start line. It's protected there.",
+ "Twenty-one kilometres of discipline beats twenty-one kilometres of hope.",
  "The marathon doesn't start at mile twenty. It starts on the Tuesday you didn't feel like running.",
- "Half the field on race day trained less than they meant to. Don't be in that half.",
- "You don't need a new plan. You need to finish the one you're on.",
- "Every distance has the same first step. Only the number of times you repeat it changes.",
- "A 10K PB and a 5K PB are built by the same person on different Tuesdays.",
- "The taper doesn't make you fitter. The months before it did. Trust the work that's already banked.",
- "Nobody stands on a start line as a finished product. You're always mid-build. Show up anyway.",
- "Splits don't lie, but they don't tell the whole story either. Some of your best training never showed up on a watch.",
- "The distance changes. The discipline required to cover it doesn't.",
- "You race the way you trained, not the way you hoped you trained.",
- "Every long run is a rehearsal for a day you haven't lived yet.",
- "Patience is the actual training plan. Everything else is just scheduling.",
- "A slower PB than you wanted is still a PB. Respect it and move the target.",
- "Nobody remembers your pace on a Wednesday. Everybody remembers whether you showed up.",
- "The body you race with is the sum of the sessions you almost skipped.",
- "Improvement is rarely a straight line. It's a trend you can only see by zooming out.",
- "You don't have to feel fast to run fast. You just have to have done the work.",
- "Every runner chasing a Half or a Marathon was once just chasing a 5K. The ambition grows with the mileage.",
- "Set the pace you can defend at kilometre thirty, not the one that feels good at kilometre three."
+ "Marathon fitness is bought in months, not weeks, and paid for in patience.",
+ "The wall isn't a myth. It's just unpaid training debt, collected at mile twenty.",
+ "A marathon is two races: the first twenty miles with your legs, the last six with your mind.",
+ "Nobody runs a marathon on race day alone. They run it on the two hundred days before it too.",
+ "The marathon rewards the runner who respected easy pace on easy days.",
+ "Marathon training is mostly slow running in service of one fast day.",
+ "The taper is the hardest part of marathon training for anyone who trusts the miles behind them.",
+ "A marathon PB is decided at kilometre thirty, using fitness built months earlier, one training run at a time.",
+ "The marathon doesn't care how strong you felt at the start. It asks again at mile eighteen.",
+ "Respect the marathon's patience, or it will teach you patience the hard way.",
+ "Every marathon long run is a rehearsal for a day you haven't lived yet.",
+ "The marathon is the only race where the last six miles can undo the first twenty.",
+ "Fuel the marathon in training. Race day is not the place to discover your stomach's opinion.",
+ "The marathon forgives an average day. It does not forgive an undisciplined training block.",
+ "Marathon pacing is a promise you make at the start line and have to keep alone, later, when it's hardest.",
+ "The marathon PB belongs to the runner who was patient enough to run slow when slow was correct.",
+ "Twenty-six miles is long enough to meet every version of yourself \u2014 patient, doubting, and determined.",
+ "The marathon doesn't reward the fastest runner. It rewards the most prepared one.",
+ "Marathon day is just a long run with better company and higher stakes.",
+ "Strength training after your twenties isn't vanity. It's maintenance on a machine you need for decades.",
+ "The weight on the bar matters less than the rep you didn't cheat.",
+ "Strength is built in the boring sets, not the exciting ones.",
+ "You don't need to enjoy the gym. You need to keep showing up to it.",
+ "Every strong back was once a weak one that kept training anyway.",
+ "The last rep of a set teaches you more than the first four combined.",
+ "Strength isn't about how much you lift once. It's about what you can repeat, safely, for years.",
+ "Your knees don't care about motivation. They care about the load you managed last week.",
+ "Lifting heavy things safely is a skill. Treat it like one.",
+ "Strength work is the tax you pay now for the mobility you'll want later.",
+ "The gym doesn't remember what you looked like last year. It only cares what you do today.",
+ "A rep done with control beats three done with momentum.",
+ "Progressive overload is just patience, measured in kilograms.",
+ "Nobody built resilient joints by skipping the accessory work.",
+ "Strength training is injury prevention wearing a different outfit.",
+ "The muscle you build in the gym is the muscle that protects the miles you run outside it.",
+ "You're not too old to start lifting. You're just later than you wanted to be, which is fine.",
+ "A strong core isn't about aesthetics. It's about staying upright at kilometre thirty.",
+ "The best strength program is the one you'll actually finish, not the perfect one you'll quit.",
+ "Every set you don't skip is a small deposit in a joint you'll need at sixty.",
+ "Hip strength is boring until the day it saves a race.",
+ "Strength training doesn't make runners slower. Neglecting it makes them injured.",
+ "You don't need a perfect program. You need a consistent one.",
+ "The weight room teaches patience the same way distance running does \u2014 slowly, and only if you show up.",
+ "Strength built now is speed protected later.",
+ "Confidence isn't a feeling you wait for. It's evidence you accumulate.",
+ "You don't need to feel confident to start. Starting is what eventually makes you confident.",
+ "Confidence is just memory of the times you didn't quit.",
+ "Nobody is born confident. They're built, one finished session at a time.",
+ "The quiet confidence of consistent training beats the loud confidence of a good day.",
+ "You earn self-trust in the sessions nobody applauds.",
+ "Confidence on race day is just training, remembered under pressure.",
+ "Doubt is loud before a big effort. Let your preparation answer it, not your feelings.",
+ "The most confident version of you has simply done the work more times than the doubtful version.",
+ "Trust is built the same way fitness is: repetition, not intention.",
+ "Self-belief isn't the starting point. It's the byproduct of finishing what you started.",
+ "You don't need permission to believe you can do this. You need evidence, and evidence is built by showing up.",
+ "Confidence is quiet. It doesn't announce itself before the race \u2014 it just shows up and runs the pace.",
+ "The version of you that finished last time is proof for the version of you doubting this time.",
+ "Nerves and confidence can coexist. Let the training settle the argument.",
+ "Every finished session is a small vote of confidence for the next hard one.",
+ "You don't have to silence the doubt. You just have to out-train it.",
+ "Confidence isn't the absence of fear. It's familiarity with doing hard things anyway.",
+ "The body believes what the training log proves, even when the mind hesitates.",
+ "Real confidence doesn't come from talking yourself into it. It comes from a training log you can point to.",
+ "A goal is just a decision you haven't stopped making yet.",
+ "Desire gets you to the start line. Discipline gets you to the finish.",
+ "Wanting it badly enough is not a plan. Wanting it badly enough to train for it is.",
+ "The goal doesn't care how badly you want it. It cares what you did about it today.",
+ "Set the goal in ink and the plan in pencil \u2014 adjust the plan, not the ambition.",
+ "A big goal is just a series of small, unremarkable Tuesdays, stacked.",
+ "Desire without a routine behind it is just a wish with a deadline.",
+ "The goal you're chasing is closer than it feels and farther than convenience would like.",
+ "You don't need a bigger goal. You need a smaller, more repeatable version of today's effort.",
+ "Every big goal looks impossible until it's broken into weeks, and every week looks manageable.",
+ "The gap between wanting and having is almost always just consistent action, sustained past the point of excitement.",
+ "Ambition without a schedule is just a daydream with better branding.",
+ "The goal is the destination. The habit is the vehicle. Build the vehicle first.",
+ "You don't lose motivation for a goal. You lose the routine that was supposed to carry you there.",
+ "A worthy goal should scare you a little and organise your week a lot.",
+ "What you want in six months is decided by what you're willing to do today, repeatedly.",
+ "Desire is the spark. Structure is what keeps it burning past week two.",
+ "The goal that survives contact with a bad week is the only kind worth setting.",
+ "Say the goal out loud, then go build the only thing that actually gets you there: a routine.",
+ "You are one decision away from a different trajectory. Make it today, not Monday.",
+ "Sleep is a training variable, not a lifestyle choice.",
+ "Recovery isn't the break from training. It's part of it.",
+ "You don't get fitter during the session. You get fitter in the recovery after it, if you let yourself.",
+ "Hydration is unglamorous and still half the reason your legs feel heavy or don't.",
+ "The best recovery tool is the one you'll actually use tonight.",
+ "A rest day is a decision, not a failure to have one.",
+ "Your future joints are being negotiated with right now, in how you load and recover from them today.",
+ "Nutrition doesn't need to be perfect. It needs to be repeatable.",
+ "Health is built in the boring hours \u2014 the ones with no witnesses and no applause.",
+ "Fatigue lies to you about what you're capable of. Rest before you believe it.",
+ "The body keeps the receipts. Every session, every skip, every night of bad sleep \u2014 all of it.",
+ "Eat like someone who's still training tomorrow, because you are.",
+ "Overtraining doesn't feel like too much, until suddenly it does.",
+ "Injuries are usually just unpaid recovery debt, collected all at once.",
+ "The number on the scale or the watch is feedback, not a verdict on your worth.",
+ "A body that moves daily ages differently than one that doesn't.",
+ "Consistency in recovery matters as much as consistency in training. Neither works alone.",
+ "Health isn't a destination. It's the sum of today's small, repeatable decisions.",
+ "The best training plan in the world fails without sleep behind it.",
+ "Listen to the difference between muscle fatigue and joint pain \u2014 one needs rest, the other needs attention.",
+ "The mind gives up a mile before the body actually needs to.",
+ "Discomfort now is just a deposit on comfort later \u2014 on race day, and in ten years.",
+ "You don't have to enjoy every session. You just have to keep finishing them.",
+ "The hardest part of almost every session is putting the shoes on. Momentum does some of the rest.",
+ "Identity follows action, not the other way around. You become a runner by running, not by planning to.",
+ "One bad week doesn't erase ten good ones \u2014 unless you let it turn into two bad months.",
+ "The plan doesn't care how you feel about it today. Follow it anyway and see what happens.",
+ "Nobody talks about the thousand ordinary sessions before the one everyone notices.",
+ "What you repeat, you become. Choose the repeats deliberately.",
+ "The finish line doesn't care about the excuses that felt reasonable on the way there.",
+ "You're training two things at once: the body, and the mind that has to keep showing up for it.",
+ "Long-term thinking is the only kind that consistently gets you anywhere worth going.",
+ "Nobody sees the rep, the kilometre, or the early morning that almost didn't happen. Do it anyway.",
+ "The plan works if you work the plan. Disappointingly simple, and still true.",
+ "You're not too old, too busy, or too tired. You're just deciding, right now, which way to go.",
+ "Every habit you have now was once uncomfortable and unfamiliar. This one will be too, and then it won't.",
+ "Momentum is easier to protect than to rebuild. Don't let one skipped day become three.",
+ "The days you don't feel like training are exactly the days that end up counting most.",
+ "Comparison is the fastest way to talk yourself out of a plan that's actually working.",
+ "Discipline looks boring from the outside. That's precisely why it works so reliably."
 ];
 
 /* ═══ storage ═══ */
 async function load(){
  try{const r=await window.storage.get(KEY);if(r&&r.value){const p=JSON.parse(r.value);
-  state.week=p.week||1;state.total=p.total||24;state.weeks=p.weeks||{};state.painLog=p.painLog||{};}}catch(e){}
+  state.week=p.week||1;state.total=p.total||20;state.weeks=p.weeks||{};state.painLog=p.painLog||{};
+  state.counters=p.counters||[];}}catch(e){}
  try{const r=await window.storage.get(SET);if(r&&r.value){const p=JSON.parse(r.value);
   if(p.favorites)settings.favorites=Object.assign({knee:[],hip:[],ankle:[],run:[],warm:[],cool:[]},p.favorites);
   if(p.customTiers)settings.customTiers=p.customTiers;
@@ -2707,29 +2895,32 @@ function panelWeek(){
  h+='<button class="pick-btn wide" id="shareWeekBtn" style="margin-top:16px">Share this week</button>';
  return h;
 }
-function panelAll(){
- const w=state.week,a=agg(1,w);
+function panelAll(from,to){
+ const w=state.week;
+ from=from||1;to=to||w;
+ const a=agg(from,to);
  const ws=a.weeks;
+ const rangeLbl=(from===1&&to===w)?('week 1→'+w):('week '+from+'→'+to);
  let h=bigRow([
   big('Distance',a.km.toFixed(1),'km total'),
   big('Time',fmtDur(a.secs),'on feet'),
   big('Avg pace',a.pace?fmtPace(a.pace):'—','per km'),
-  big('Sessions',a.sessions,'of '+(7*w)),
-  big('Weeks done',a.full,'of '+w),
+  big('Sessions',a.sessions,'of '+(7*(to-from+1))),
+  big('Weeks done',a.full,'of '+(to-from+1)),
   big('Streak',streak(),'sessions')
  ]);
- h+=sec('Distance per week',lineChart(ws.map(x=>({l:x.w,v:x.km})),v=>v.toFixed(1)+' km'),'total km per week, left→right = week 1→'+w);
- h+=sec('Time on feet trend',lineChart(ws.map(x=>({l:x.w,v:x.secs})),v=>fmtDur(v)),'total time on feet per week, all activities, left→right = week 1→'+w);
+ h+=sec('Distance per week',lineChart(ws.map(x=>({l:x.w,v:x.km})),v=>v.toFixed(1)+' km'),'total km per week, left→right = '+rangeLbl);
+ h+=sec('Time on feet trend',lineChart(ws.map(x=>({l:x.w,v:x.secs})),v=>fmtDur(v)),'total time on feet per week, all activities, left→right = '+rangeLbl);
  h+=sec('Distance by session',hbar([
   {l:'Easy',v:+a.kmType.easy.toFixed(1)},
   {l:'Speed',v:+a.kmType.speed.toFixed(1)},
   {l:'Long',v:+a.kmType.long.toFixed(1)}],' km'),'kilometres run');
  h+=sec('Sessions by type',hbar(typeCountRows(a.typeCounts),''),'days ticked, by type, across all weeks');
- h+=sec('Pace trend',lineChart(ws.map(x=>({l:x.w,v:x.pace})),v=>fmtPace(v)+'/km'),'avg running pace per week, left→right = week 1→'+w);
- if(ws.some(x=>x.paceByType.easy))h+=sec('Easy run pace trend',lineChart(ws.map(x=>({l:x.w,v:x.paceByType.easy})),v=>fmtPace(v)+'/km'),'avg pace per week, left→right = week 1→'+w);
- if(ws.some(x=>x.paceByType.speed))h+=sec('Speed session pace trend',lineChart(ws.map(x=>({l:x.w,v:x.paceByType.speed})),v=>fmtPace(v)+'/km'),'avg pace per week, left→right = week 1→'+w);
- if(ws.some(x=>x.paceByType.long))h+=sec('Long run pace trend',lineChart(ws.map(x=>({l:x.w,v:x.paceByType.long})),v=>fmtPace(v)+'/km'),'avg pace per week, left→right = week 1→'+w);
- h+=sec('Strength volume per week',lineChart(ws.map(x=>({l:x.w,v:x.sets})),v=>Math.round(v)+' sets'),'sets per week, left→right = week 1→'+w);
+ h+=sec('Pace trend',lineChart(ws.map(x=>({l:x.w,v:x.pace})),v=>fmtPace(v)+'/km'),'avg running pace per week, left→right = '+rangeLbl);
+ if(ws.some(x=>x.paceByType.easy))h+=sec('Easy run pace trend',lineChart(ws.map(x=>({l:x.w,v:x.paceByType.easy})),v=>fmtPace(v)+'/km'),'avg pace per week, left→right = '+rangeLbl);
+ if(ws.some(x=>x.paceByType.speed))h+=sec('Speed session pace trend',lineChart(ws.map(x=>({l:x.w,v:x.paceByType.speed})),v=>fmtPace(v)+'/km'),'avg pace per week, left→right = '+rangeLbl);
+ if(ws.some(x=>x.paceByType.long))h+=sec('Long run pace trend',lineChart(ws.map(x=>({l:x.w,v:x.paceByType.long})),v=>fmtPace(v)+'/km'),'avg pace per week, left→right = '+rangeLbl);
+ h+=sec('Strength volume per week',lineChart(ws.map(x=>({l:x.w,v:x.sets})),v=>Math.round(v)+' sets'),'sets per week, left→right = '+rangeLbl);
  h+=sec('Strength by muscle group',hbar(muscleRows(a.muscles),' ex'),'exercises logged');
  h+=sec('Speed sessions by level',hbar([
   {l:'Steady',v:a.hardness.easy},
@@ -2738,14 +2929,14 @@ function panelAll(){
  h+=sec('Elevation',bigRow([
   big('Total gain',a.elevGain?Math.round(a.elevGain):'—','m climbed'),
   big('Total loss',a.elevLoss?Math.round(a.elevLoss):'—','m descended')
- ])+lineChart(ws.map(x=>({l:x.w,v:x.elevGain})),v=>Math.round(v)+' m'),'gain per week, left→right = week 1→'+w);
- if(ws.some(x=>x.avgHR))h+=sec('Heart rate trend',lineChart(ws.map(x=>({l:x.w,v:x.avgHR})),v=>Math.round(v)+' bpm'),'avg bpm per week across all session types, left→right = week 1→'+w);
- if(ws.some(x=>x.hrAvgByType.easy))h+=sec('Easy run HR trend',lineChart(ws.map(x=>({l:x.w,v:x.hrAvgByType.easy})),v=>Math.round(v)+' bpm'),'avg bpm per week, left→right = week 1→'+w);
- if(ws.some(x=>x.hrAvgByType.speed))h+=sec('Speed session HR trend',lineChart(ws.map(x=>({l:x.w,v:x.hrAvgByType.speed})),v=>Math.round(v)+' bpm'),'avg bpm per week, left→right = week 1→'+w);
- if(ws.some(x=>x.hrAvgByType.long))h+=sec('Long run HR trend',lineChart(ws.map(x=>({l:x.w,v:x.hrAvgByType.long})),v=>Math.round(v)+' bpm'),'avg bpm per week, left→right = week 1→'+w);
- if(ws.some(x=>x.durationByType.easy))h+=sec('Easy run duration trend',lineChart(ws.map(x=>({l:x.w,v:x.durationByType.easy})),v=>fmtDur(v)),'time on feet per week, left→right = week 1→'+w);
- if(ws.some(x=>x.durationByType.speed))h+=sec('Speed session duration trend',lineChart(ws.map(x=>({l:x.w,v:x.durationByType.speed})),v=>fmtDur(v)),'time on feet per week, left→right = week 1→'+w);
- if(ws.some(x=>x.durationByType.long))h+=sec('Long run duration trend',lineChart(ws.map(x=>({l:x.w,v:x.durationByType.long})),v=>fmtDur(v)),'time on feet per week, left→right = week 1→'+w);
+ ])+lineChart(ws.map(x=>({l:x.w,v:x.elevGain})),v=>Math.round(v)+' m'),'gain per week, left→right = '+rangeLbl);
+ if(ws.some(x=>x.avgHR))h+=sec('Heart rate trend',lineChart(ws.map(x=>({l:x.w,v:x.avgHR})),v=>Math.round(v)+' bpm'),'avg bpm per week across all session types, left→right = '+rangeLbl);
+ if(ws.some(x=>x.hrAvgByType.easy))h+=sec('Easy run HR trend',lineChart(ws.map(x=>({l:x.w,v:x.hrAvgByType.easy})),v=>Math.round(v)+' bpm'),'avg bpm per week, left→right = '+rangeLbl);
+ if(ws.some(x=>x.hrAvgByType.speed))h+=sec('Speed session HR trend',lineChart(ws.map(x=>({l:x.w,v:x.hrAvgByType.speed})),v=>Math.round(v)+' bpm'),'avg bpm per week, left→right = '+rangeLbl);
+ if(ws.some(x=>x.hrAvgByType.long))h+=sec('Long run HR trend',lineChart(ws.map(x=>({l:x.w,v:x.hrAvgByType.long})),v=>Math.round(v)+' bpm'),'avg bpm per week, left→right = '+rangeLbl);
+ if(ws.some(x=>x.durationByType.easy))h+=sec('Easy run duration trend',lineChart(ws.map(x=>({l:x.w,v:x.durationByType.easy})),v=>fmtDur(v)),'time on feet per week, left→right = '+rangeLbl);
+ if(ws.some(x=>x.durationByType.speed))h+=sec('Speed session duration trend',lineChart(ws.map(x=>({l:x.w,v:x.durationByType.speed})),v=>fmtDur(v)),'time on feet per week, left→right = '+rangeLbl);
+ if(ws.some(x=>x.durationByType.long))h+=sec('Long run duration trend',lineChart(ws.map(x=>({l:x.w,v:x.durationByType.long})),v=>fmtDur(v)),'time on feet per week, left→right = '+rangeLbl);
  h+=sec('Knee work',bigRow([
   big('Circuits',a.circuits,'total'),
   big('Exercises',a.exs,'logged')
@@ -2787,11 +2978,24 @@ function panelCompare(){
  return h;
 }
 function renderStats(){
- return '<div class="stats"><div class="stabs">'+
+ let h='<div class="stats"><div class="stabs">'+
   '<button data-stab="week" class="'+(statTab==='week'?'on':'')+'">This week</button>'+
   '<button data-stab="all" class="'+(statTab==='all'?'on':'')+'">Weeks 1–'+state.week+'</button>'+
-  '<button data-stab="compare" class="'+(statTab==='compare'?'on':'')+'">Compare</button></div>'+
-  '<div class="spanel">'+(statTab==='week'?panelWeek():(statTab==='all'?panelAll():panelCompare()))+'</div></div>';
+  '<button data-stab="compare" class="'+(statTab==='compare'?'on':'')+'">Compare</button></div>';
+ let panel;
+ if(statTab==='all'){
+  const from=Math.min(statRangeFrom||1,state.week),to=Math.min(statRangeTo||state.week,state.week);
+  const opts=Array.from({length:state.week},(_,i)=>i+1);
+  h+='<div class="rangepick"><label>From</label><select data-statfrom>'+
+   opts.map(n=>'<option value="'+n+'"'+(n===from?' selected':'')+'>'+n+'</option>').join('')+
+   '</select><label>to</label><select data-statto>'+
+   opts.map(n=>'<option value="'+n+'"'+(n===to?' selected':'')+'>'+n+'</option>').join('')+
+   '</select>'+((statRangeFrom||statRangeTo)?'<button type="button" data-statreset>Reset</button>':'')+'</div>';
+  panel=panelAll(from,to);
+ } else {
+  panel=statTab==='week'?panelWeek():panelCompare();
+ }
+ return h+'<div class="spanel">'+panel+'</div></div>';
 }
 function renderRacePBs(){
  const pbs=computeRacePBs();
@@ -3479,6 +3683,10 @@ function bindWeek(app,d){
   panels[b.dataset.acc]=!panels[b.dataset.acc];
   settings.panels=panels;saveSet();renderWeek();renderLibSection();});
  app.querySelectorAll('[data-stab]').forEach(b=>b.onclick=()=>{statTab=b.dataset.stab;renderWeek();});
+ const sf=app.querySelector('[data-statfrom]'),st=app.querySelector('[data-statto]'),sr=app.querySelector('[data-statreset]');
+ if(sf)sf.onchange=e=>{statRangeFrom=+e.target.value;if(statRangeTo&&statRangeTo<statRangeFrom)statRangeTo=statRangeFrom;renderWeek();};
+ if(st)st.onchange=e=>{statRangeTo=+e.target.value;if(statRangeFrom&&statRangeFrom>statRangeTo)statRangeFrom=statRangeTo;renderWeek();};
+ if(sr)sr.onclick=()=>{statRangeFrom=null;statRangeTo=null;renderWeek();};
  const shareBtn=document.getElementById('shareWeekBtn');
  if(shareBtn)shareBtn.onclick=shareWeekImage;
  const cmpA=document.getElementById('cmpA'),cmpB=document.getElementById('cmpB');
@@ -3578,6 +3786,37 @@ function renderLib(){
 }
 function setQuote(){document.getElementById('quoteText').textContent=LINES[Math.floor(Math.random()*LINES.length)];}
 
+function daysUntil(dateStr){
+ if(!dateStr)return null;
+ const now=new Date();const d0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+ const parts=dateStr.split('-').map(Number);
+ const d1=new Date(parts[0],parts[1]-1,parts[2]);
+ return Math.round((d1-d0)/86400000);
+}
+function fmtCounterDate(dateStr){
+ const parts=dateStr.split('-').map(Number);
+ const d=new Date(parts[0],parts[1]-1,parts[2]);
+ const dow=d.toLocaleDateString('en-GB',{weekday:'long'});
+ const dd=String(parts[2]).padStart(2,'0'),mm=String(parts[1]).padStart(2,'0');
+ return dow+' '+dd+'.'+mm+'.'+parts[0];
+}
+function renderCounters(){
+ const el=document.getElementById('countersList');
+ if(!el)return;
+ const list=state.counters||[];
+ el.innerHTML=list.length?list.slice().sort((a,b)=>daysUntil(a.date)-daysUntil(b.date)).map(c=>{
+  const days=daysUntil(c.date);
+  const dLabel=days>0?(days+' days'):(days===0?'Today':(Math.abs(days)+' days ago'));
+  return '<div class="counter-card"><button class="counter-del" data-counterdel="'+c.id+'" aria-label="Remove countdown">×</button>'+
+   '<div class="counter-dist">'+(RACE_DIST[c.dist]?RACE_DIST[c.dist].label:c.dist)+'</div>'+
+   '<div class="counter-days">'+dLabel+'</div>'+
+   '<div class="counter-date">'+fmtCounterDate(c.date)+'</div></div>';
+ }).join(''):'<p class="ref-sub" style="margin:0 0 10px">No countdowns yet — pick a date and a distance below.</p>';
+ el.querySelectorAll('[data-counterdel]').forEach(b=>b.onclick=()=>{
+  state.counters=(state.counters||[]).filter(c=>String(c.id)!==b.dataset.counterdel);
+  save();renderCounters();
+ });
+}
 function renderHero(){
  const el=document.getElementById('heroGoal');
  if(!el)return;
@@ -3605,7 +3844,7 @@ function renderIdentity(){
   '<div class="idchip"><span class="idk">Distance run</span><span class="idv">'+pb.totalKm.toFixed(0)+' km</span></div>';
 }
 function renderAll(){
- renderTape();renderProgress();renderWeek();renderLibSection();renderHero();setQuote();
+ renderTape();renderProgress();renderWeek();renderLibSection();renderHero();renderCounters();setQuote();
  const here=document.querySelector('.tick.here');
  if(here)here.scrollIntoView({inline:'center',block:'nearest'});
 }
@@ -3627,6 +3866,20 @@ function renderAll(){
  document.getElementById('demoBtn').onclick = generateDemoData;
  const lh=document.getElementById('libHead');
  if(lh)lh.onclick=()=>{panels.lib=!panels.lib;settings.panels=panels;saveSet();renderLibSection();};
+ const ctb=document.getElementById('counterToggleBtn'),cform=document.getElementById('counterForm');
+ if(ctb)ctb.onclick=()=>{ctb.hidden=true;cform.hidden=false;};
+ const ccancel=document.getElementById('counterCancelBtn');
+ if(ccancel)ccancel.onclick=()=>{cform.hidden=true;ctb.hidden=false;document.getElementById('counterDate').value='';};
+ const cab=document.getElementById('counterAddBtn');
+ if(cab)cab.onclick=()=>{
+  const dateEl=document.getElementById('counterDate'),distEl=document.getElementById('counterDist');
+  if(!dateEl.value)return;
+  if(!state.counters)state.counters=[];
+  state.counters.push({id:Date.now()+'-'+Math.random().toString(36).slice(2),date:dateEl.value,dist:distEl.value});
+  dateEl.value='';
+  cform.hidden=true;ctb.hidden=false;
+  save();renderCounters();
+ };
  document.getElementById('pkClose').onclick=closePicker;
  document.getElementById('pkDone').onclick=closePicker;
  document.getElementById('picker').addEventListener('click',e=>{if(e.target.id==='picker')closePicker();});
