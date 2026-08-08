@@ -155,6 +155,7 @@ body{background:var(--stock);color:var(--ink);font-family:'Archivo',system-ui,sa
 .res{margin-top:12px;background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:12px;}
 .res-h{font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
   color:var(--ink-soft);margin-bottom:9px;}
+.res-locked{font-size:12.5px;color:var(--ink-faint);margin:-3px 0 10px;}
 .fields{display:flex;flex-wrap:wrap;gap:9px;}
 .field{flex:1 1 88px;min-width:78px;}
 .field label{display:block;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;
@@ -162,6 +163,9 @@ body{background:var(--stock);color:var(--ink);font-family:'Archivo',system-ui,sa
 .field input{width:100%;background:var(--stock);border:1px solid var(--rule);border-radius:2px;
   padding:7px 8px;font-family:'DM Mono',monospace;font-size:13px;color:var(--ink);}
 .field input:focus{outline:2px solid var(--track);outline-offset:-1px;}
+.field input:disabled{opacity:.45;cursor:not-allowed;}
+.also-race-opt input:disabled{opacity:.45;cursor:not-allowed;}
+.also-race-opt:has(input:disabled){color:var(--ink-faint);cursor:not-allowed;}
 
 /* rating */
 .rates{display:flex;flex-direction:column;gap:7px;margin-top:11px;}
@@ -563,6 +567,14 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 .ordersel:focus-visible{outline:2px solid var(--track);outline-offset:1px;}
 .race-pb-note{margin-top:9px;font-size:12.5px;color:var(--ink-soft);}
 .race-pb-note b{color:var(--track);}
+.also-race{margin-top:9px;background:var(--stock);border:1px solid var(--rule);border-radius:2px;padding:9px 11px;}
+.also-race-h{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-faint);margin-bottom:7px;}
+.also-race-opt{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);
+  cursor:pointer;margin-bottom:6px;}
+.also-race-opt:last-child{margin-bottom:0;}
+.also-race-opt input{accent-color:var(--track);width:16px;height:16px;cursor:pointer;flex:0 0 auto;}
+.also-race-fields{display:flex;gap:10px;margin:8px 0 4px;}
 
 /* hardness levels — each level opens to show its session variants */
 .hardness{display:inline-block;font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.06em;
@@ -1953,19 +1965,20 @@ function parseFlexibleTime(v){
  }
  return NaN;
 }
-function validateField(input,key){
+function validateField(input,key,errKey){
  const v=input.value.trim();
+ errKey=errKey||input.dataset.res;
  if(isTimeField(key)){
   const bad=v!==''&&isNaN(parseFlexibleTime(v));
   input.classList.toggle('field-bad',bad);
-  const err=document.querySelector('[data-fielderr="'+input.dataset.res+'"]');
+  const err=document.querySelector('[data-fielderr="'+errKey+'"]');
   if(err)err.textContent=bad?'Try mm:ss, or just 1830 for 18:30':'';
   return;
  }
  if(!isNumericField(key))return;
  const bad=v!==''&&isNaN(parseFlexibleNumber(v));
  input.classList.toggle('field-bad',bad);
- const err=document.querySelector('[data-fielderr="'+input.dataset.res+'"]');
+ const err=document.querySelector('[data-fielderr="'+errKey+'"]');
  if(err)err.textContent=bad?'Number required':'';
 }
 /* Normalizes a res field's stored value to a clean canonical form once the
@@ -1981,6 +1994,20 @@ function normalizeResField(d,dayKey,fieldKey){
   const n=parseFlexibleNumber(raw);
   if(isNaN(n))return;
   r[fieldKey]=fieldKey==='dist'?n.toFixed(1):String(Math.round(n));
+ }
+}
+/* same cleanup as normalizeResField, but for a split logged inside a longer run */
+function normalizeAlsoRaceField(d,dayId,dist,fieldKey){
+ const s=d.alsoRace&&d.alsoRace[dayId]&&d.alsoRace[dayId][dist];if(!s)return;
+ const raw=s[fieldKey];if(raw==null||raw==='')return;
+ if(isTimeField(fieldKey)){
+  const secs=parseFlexibleTime(raw);
+  if(isNaN(secs)||secs<=0)return;
+  s[fieldKey]=fieldKey==='pace'?fmtPace(secs):fmtDur(secs);
+ } else if(fieldKey==='hr'){
+  const n=parseFlexibleNumber(raw);
+  if(isNaN(n))return;
+  s[fieldKey]=String(Math.round(n));
  }
 }
 function acc(key,title,meta,body,done){
@@ -2277,9 +2304,9 @@ function applyTheme(){
 
 function wk(w){
  if(!state.weeks[w])state.weeks[w]={days:{},order:DEFAULT_ORDER.slice(),wedType:{},tier:{},satMode:{},
-   res:{},rate:{},route:{},knee:{},open:{},skip:{}};
+   res:{},rate:{},route:{},knee:{},open:{},skip:{},alsoRace:{}};
  const d=state.weeks[w];
- ['res','rate','route','knee','open','days','skip'].forEach(k=>{if(!d[k])d[k]={};});
+ ['res','rate','route','knee','open','days','skip','alsoRace'].forEach(k=>{if(!d[k])d[k]={};});
  if(!d.order||d.order.length!==7)d.order=DEFAULT_ORDER.slice();
  // migrate any pre-existing week-level wedType/tier/satMode into per-day maps
  if(typeof d.wedType==='string'){const sd=slotOf(d,'speed');d.wedType=sd?{[sd]:d.wedType}:{};}
@@ -2303,11 +2330,6 @@ function exOf(d,day){
 function exFind(id){return KNEE.find(k=>k.id===id);}
 function satMode(w,dayId){
  return satModeOf(wk(w),dayId);
-}
-function syncPace(d,day){
- const r=d.res&&d.res[day];if(!r)return;
- const t=parseFlexibleTime(r.time),km=parseFlexibleNumber(r.dist);
- if(!isNaN(t)&&t>0&&!isNaN(km)&&km>0)r.pace=fmtPace(t/km);
 }
 function gymTotal(r){
  if(!r)return null;
@@ -2394,28 +2416,41 @@ function computePBs(){
  }
  return {longest:longest,fastestEver:fastestEver,fastestEasy:fastestEasy,totalKm:totalKm};
 }
-/* per-distance PBs — built automatically from any day whose type is set to that
-   distance (5K/10K/Half Marathon/Marathon). A faster time than the current best,
-   or the first time logged at all, becomes the new PB. */
+/* per-distance PBs — built from any day whose type is set to that distance
+   (5K/10K/Half Marathon/Marathon), plus any genuine split time logged partway
+   through a longer run (d.alsoRace[dayId][distId] = {time,hr}). A faster time
+   than the current best, or the first time logged at all, becomes the new PB. */
 function computeRacePBs(){
  const out={};
  RACE_ORDER.forEach(id=>{out[id]={best:null,bestWeek:null,bestPace:null,bestHR:null,history:[]};});
+ const record=(distId,w,dayId,t,km,hrRaw)=>{
+  if(isNaN(t)||t<=0)return;
+  const hrN=parseFlexibleNumber(hrRaw);
+  const pace=(!isNaN(km)&&km>0)?t/km:null;
+  const hr=isNaN(hrN)?null:hrN;
+  out[distId].history.push({w:w,dayId:dayId,t:t,pace:pace,hr:hr,date:dateKeyForSlot(w,dayId)});
+  if(out[distId].best===null||t<out[distId].best){
+   out[distId].best=t;out[distId].bestWeek=w;out[distId].bestPace=pace;out[distId].bestHR=hr;
+  }
+ };
  for(let w=1;w<=state.total;w++){
   const d=state.weeks[w];if(!d)continue;
   const order=d.order||DEFAULT_ORDER;
+  const also=d.alsoRace||{};
+  const days=d.days||{};
   CORE.forEach((dayId,idx)=>{
+   if(!days[dayId])return;
    const distId=order[idx];
-   if(RACE_ORDER.indexOf(distId)<0)return;
-   const r=d.res&&d.res[dayId];if(!r)return;
-   const t=parseFlexibleTime(r.time);
-   if(isNaN(t)||t<=0)return;
-   const km=parseFlexibleNumber(r.dist);
-   const hrN=parseFlexibleNumber(r.hr);
-   const pace=(!isNaN(km)&&km>0)?t/km:null;
-   const hr=isNaN(hrN)?null:hrN;
-   out[distId].history.push({w:w,dayId:dayId,t:t,pace:pace,hr:hr,date:dateKeyForSlot(w,dayId)});
-   if(out[distId].best===null||t<out[distId].best){
-    out[distId].best=t;out[distId].bestWeek=w;out[distId].bestPace=pace;out[distId].bestHR=hr;
+   if(RACE_ORDER.indexOf(distId)>=0){
+    const r=d.res&&d.res[dayId];
+    if(r)record(distId,w,dayId,parseFlexibleTime(r.time),parseFlexibleNumber(r.dist),r.hr);
+   }
+   if(distId==='long'&&also[dayId]){
+    Object.keys(also[dayId]).forEach(splitDist=>{
+     if(RACE_ORDER.indexOf(splitDist)<0||!RACE_DIST[splitDist])return;
+     const s=also[dayId][splitDist];
+     record(splitDist,w,dayId,parseFlexibleTime(s.time),RACE_DIST[splitDist].km,s.hr);
+    });
    }
   });
  }
@@ -2579,7 +2614,32 @@ function typeCountsOf(w){
   if(!days[dayId])return;
   const type=order[i];
   if(type==='push'||type==='pull'||type==='full')counts.strength++;
+  else if(type==='10k'||type==='half'||type==='marathon')counts.long++;
   else if(Object.prototype.hasOwnProperty.call(counts,type))counts[type]++;
+ });
+ return counts;
+}
+/* how many 5K/10K/Half/Marathon sessions were done this week. A long run with
+   a genuine split logged partway through (d.alsoRace) credits that distance
+   too, on top of its own 10K/Half/Marathon type days — the long run itself
+   still only counts once, as one long-run session. */
+function raceCountsOf(w){
+ const d=state.weeks[w]||{};
+ const days=d.days||{};
+ const order=(d.order)||DEFAULT_ORDER;
+ const also=d.alsoRace||{};
+ const counts={'5k':0,'10k':0,half:0,marathon:0};
+ CORE.forEach((dayId,i)=>{
+  if(!days[dayId])return;
+  const type=order[i];
+  if(Object.prototype.hasOwnProperty.call(counts,type))counts[type]++;
+  if(type==='long'&&also[dayId]){
+   Object.keys(also[dayId]).forEach(dist=>{
+    if(!Object.prototype.hasOwnProperty.call(counts,dist))return;
+    const t=parseFlexibleTime((also[dayId][dist]||{}).time);
+    if(!isNaN(t)&&t>0)counts[dist]++;
+   });
+  }
  });
  return counts;
 }
@@ -2660,6 +2720,7 @@ function weekAgg(w){
  return {w:w,km:km,secs:secs,runs:runs,kmType:kmType,longest:longest,fastest:fastest,
   paceKm:paceKm,paceSecs:paceSecs,pace:pace,paceByType:paceByType,durationByType:durationByType,
   elevGain:elevGain,elevLoss:elevLoss,avgHR:avgHR,hrAvgByType:hrAvgByType,typeCounts:typeCounts,
+  raceCounts:raceCountsOf(w),
   sets:sets,muscles:muscles,exCount:exCount,groupCount:groupCount,exs:exs,circuits:circuits,
   warm:warm,cool:cool,sessions:CORE.filter(k=>days[k]).length,hardness:hardness,
   strSess:gymDays.filter(k=>days[k]).length,kneeDay:kneeDay,days:days,rate:rate,full:weekDone(w)};
@@ -2668,7 +2729,8 @@ function agg(from,to){
  const o={km:0,secs:0,runs:0,longest:0,fastest:null,sets:0,exs:0,circuits:0,warm:0,cool:0,
   sessions:0,strSess:0,full:0,kmType:{easy:0,speed:0,long:0},muscles:{},exCount:{},groupCount:{},
   hardness:{easy:0,medium:0,hard:0},rate:{},rateN:{},weeks:[],paceKm:0,paceSecs:0,
-  elevGain:0,elevLoss:0,typeCounts:{easy:0,speed:0,long:0,strength:0,rest:0}};
+  elevGain:0,elevLoss:0,typeCounts:{easy:0,speed:0,long:0,strength:0,rest:0},
+  raceCounts:{'5k':0,'10k':0,half:0,marathon:0}};
  for(let w=from;w<=to;w++){
   const a=weekAgg(w);o.weeks.push(a);
   o.km+=a.km;o.secs+=a.secs;o.runs+=a.runs;o.sets+=a.sets;o.exs+=a.exs;o.circuits+=a.circuits;
@@ -2679,6 +2741,7 @@ function agg(from,to){
   if(a.hardness)o.hardness[a.hardness]++;
   o.elevGain+=a.elevGain;o.elevLoss+=a.elevLoss;
   Object.keys(a.typeCounts).forEach(k=>o.typeCounts[k]+=a.typeCounts[k]);
+  Object.keys(a.raceCounts).forEach(k=>o.raceCounts[k]+=a.raceCounts[k]);
   ['easy','speed','long'].forEach(k=>o.kmType[k]+=a.kmType[k]);
   Object.keys(a.muscles).forEach(k=>o.muscles[k]=(o.muscles[k]||0)+a.muscles[k]);
   Object.keys(a.exCount).forEach(k=>o.exCount[k]=(o.exCount[k]||0)+a.exCount[k]);
@@ -2888,6 +2951,12 @@ function panelWeek(){
   big('Elev loss',a.elevLoss?Math.round(a.elevLoss):'—','m')
  ]);
  h+=sec('Sessions by type',hbar(typeCountRows(a.typeCounts),''),'days ticked, by type');
+ h+=sec('Race distances',bigRow([
+  big('5K',a.raceCounts['5k'],'done'),
+  big('10K',a.raceCounts['10k'],'done'),
+  big('Half',a.raceCounts.half,'done'),
+  big('Marathon',a.raceCounts.marathon,'done')
+ ]),'sessions logged at each distance, this week');
  h+=sec('Distance by session',hbar([
   {l:'Easy',v:+a.kmType.easy.toFixed(1)},
   {l:'Speed',v:+a.kmType.speed.toFixed(1)},
@@ -2935,6 +3004,12 @@ function panelAll(from,to){
   {l:'Speed',v:+a.kmType.speed.toFixed(1)},
   {l:'Long',v:+a.kmType.long.toFixed(1)}],' km'),'kilometres run');
  h+=sec('Sessions by type',hbar(typeCountRows(a.typeCounts),''),'days ticked, by type, across all weeks');
+ h+=sec('Race distances',hbar([
+  {l:'5K',v:a.raceCounts['5k']},
+  {l:'10K',v:a.raceCounts['10k']},
+  {l:'Half',v:a.raceCounts.half},
+  {l:'Marathon',v:a.raceCounts.marathon}
+ ],' done'),'sessions logged at each distance, '+rangeLbl);
  h+=sec('Pace trend',lineChart(ws.map(x=>({l:x.w,v:x.pace})),v=>fmtPace(v)+'/km'),'avg running pace per week, left→right = '+rangeLbl);
  if(ws.some(x=>x.paceByType.easy))h+=sec('Easy run pace trend',lineChart(ws.map(x=>({l:x.w,v:x.paceByType.easy})),v=>fmtPace(v)+'/km'),'avg pace per week, left→right = '+rangeLbl);
  if(ws.some(x=>x.paceByType.speed))h+=sec('Speed session pace trend',lineChart(ws.map(x=>({l:x.w,v:x.paceByType.speed})),v=>fmtPace(v)+'/km'),'avg pace per week, left→right = '+rangeLbl);
@@ -3270,23 +3345,23 @@ function rateRow(label,cat,R){
  return '<div class="rate"><span class="rate-l">'+label+'</span>'+pips(R.v[cat]||0)+
   '<span class="rate-why">'+(R.why[cat]||'')+'</span></div>';
 }
-function fieldRow(day,defs,res){
+function fieldRow(day,defs,res,disabled){
  let h='<div class="fields">';
  defs.forEach(f=>{h+='<div class="field"><label>'+f[1]+'</label><input type="'+(f[2]||'number')+
   '" inputmode="'+(f[2]==='text'?'text':'numeric')+'" data-res="'+day+'.'+f[0]+'" value="'+
-  ((res&&res[f[0]])||'')+'" placeholder="'+(f[3]||'')+'">'+
+  ((res&&res[f[0]])||'')+'" placeholder="'+(f[3]||'')+'"'+(disabled?' disabled':'')+'>'+
   '<span class="field-err" data-fielderr="'+day+'.'+f[0]+'"></span></div>';});
  return h+'</div>';
 }
-function gymFieldRow(day,defs,res){
+function gymFieldRow(day,defs,res,disabled){
  let h='<div class="gymtable"><div class="gymhead"><span></span><span>Exercises</span><span>Total sets</span></div>';
  defs.forEach(f=>{
   const key=f[0],setsKey=key+'Per';
   const exV=(res&&res[key])||'',setsV=(res&&res[setsKey])||'';
   h+='<div class="gymrow"><label>'+f[1]+'</label>'+
-   '<div class="gymcell"><input type="text" inputmode="numeric" data-res="'+day+'.'+key+'" value="'+exV+'" placeholder="'+(f[3]||'0')+'">'+
+   '<div class="gymcell"><input type="text" inputmode="numeric" data-res="'+day+'.'+key+'" value="'+exV+'" placeholder="'+(f[3]||'0')+'"'+(disabled?' disabled':'')+'>'+
    '<span class="field-err" data-fielderr="'+day+'.'+key+'"></span></div>'+
-   '<div class="gymcell"><input type="text" inputmode="numeric" data-res="'+day+'.'+setsKey+'" value="'+setsV+'" placeholder="e.g. 7">'+
+   '<div class="gymcell"><input type="text" inputmode="numeric" data-res="'+day+'.'+setsKey+'" value="'+setsV+'" placeholder="e.g. 7"'+(disabled?' disabled':'')+'>'+
    '<span class="field-err" data-fielderr="'+day+'.'+setsKey+'"></span></div>'+
    '</div>';
  });
@@ -3437,7 +3512,8 @@ function renderWeek(){
   }
   if(day.res){
    daysHtml+='<div class="res"><div class="res-h">What you did</div>'+
-    (day.k==='gym'?gymFieldRow(day.id,day.res.f,d.res[day.id]):fieldRow(day.id,day.res.f,d.res[day.id]));
+    (!on?'<p class="res-locked">Tick this day as done to fill this in.</p>':'')+
+    (day.k==='gym'?gymFieldRow(day.id,day.res.f,d.res[day.id],!on):fieldRow(day.id,day.res.f,d.res[day.id],!on));
    if(day.k==='gym'){
     const g=gymTotal(d.res[day.id]);
     daysHtml+='<div class="setstotal">'+(g
@@ -3447,8 +3523,41 @@ function renderWeek(){
    daysHtml+='</div>';
    if(day.race){
     const pbHere=computeRacePBs()[type];
-    if(pbHere&&pbHere.best)daysHtml+='<p class="race-pb-note">Current PB: <b>'+fmtDur(pbHere.best)+'</b> — a faster time here becomes the new PB automatically.</p>';
-    else daysHtml+='<p class="race-pb-note">No PB yet for this distance — whatever you log here becomes the first one.</p>';
+    if(on){
+     if(pbHere&&pbHere.best)daysHtml+='<p class="race-pb-note">Current PB: <b>'+fmtDur(pbHere.best)+'</b> — a faster time here becomes the new PB automatically.</p>';
+     else daysHtml+='<p class="race-pb-note">No PB yet for this distance — whatever you log here becomes the first one.</p>';
+    }
+   } else if(type==='long'&&day.k==='run'){
+    const curDist=parseFlexibleNumber((d.res[day.id]||{}).dist)||0;
+    const already=(d.alsoRace&&d.alsoRace[day.id])||{};
+    const opts=[];
+    if(curDist>=10)opts.push(['10k','10K']);
+    if(curDist>=21.1)opts.push(['half','Half Marathon']);
+    if(curDist>=42.2)opts.push(['marathon','Marathon']);
+    if(opts.length){
+     const allPBs=computeRacePBs();
+     daysHtml+='<div class="also-race"><div class="also-race-h">If available, add a split for a distance you passed on the way'+(!on?' (tick this day first):':':')+'</div>'+
+      opts.map(o=>{
+       const has=already[o[0]];
+       const ekey=day.id+'|'+o[0];
+       let h='<label class="also-race-opt"><input type="checkbox" data-alsoracetoggle="'+ekey+'"'+(has?' checked':'')+(!on?' disabled':'')+'> Add a '+o[1]+' split</label>';
+       if(has){
+        const pbHere=allPBs[o[0]];
+        h+='<div class="also-race-fields">'+
+         '<div class="field"><label>Time</label><input type="text" inputmode="text" data-alsoracetime="'+ekey+'" placeholder="43:00" value="'+esc(has.time||'')+'"'+(!on?' disabled':'')+'>'+
+         '<span class="field-err" data-fielderr="also.'+ekey+'.time"></span></div>'+
+         '<div class="field"><label>Pace</label><input type="text" inputmode="text" data-alsoracepace="'+ekey+'" placeholder="4:18" value="'+esc(has.pace||'')+'"'+(!on?' disabled':'')+'>'+
+         '<span class="field-err" data-fielderr="also.'+ekey+'.pace"></span></div>'+
+         '<div class="field"><label>HR</label><input type="text" inputmode="numeric" data-alsoracehr="'+ekey+'" placeholder="172" value="'+esc(has.hr||'')+'"'+(!on?' disabled':'')+'>'+
+         '<span class="field-err" data-fielderr="also.'+ekey+'.hr"></span></div>'+
+         '</div>'+
+         (pbHere&&pbHere.best?'<p class="race-pb-note">Current '+o[1]+' PB: <b>'+fmtDur(pbHere.best)+'</b> — a faster split here becomes the new PB automatically.</p>'
+          :'<p class="race-pb-note">No '+o[1]+' PB yet — this split becomes the first one.</p>');
+       }
+       return h;
+      }).join('')+
+      '</div>';
+    }
    }
   }
   if(isKnee)daysHtml+=exPanel(d,day.id,true);
@@ -3511,6 +3620,56 @@ function bindWeek(app,d){
    clearTimeout(saveTimer);saveTimer=setTimeout(save,700);
   };
   inp.onblur=()=>{clearTimeout(saveTimer);save();};
+ });
+ app.querySelectorAll('[data-alsoracetoggle]').forEach(cb=>cb.onchange=e=>{
+  const [dayId,dist]=e.target.dataset.alsoracetoggle.split('|');
+  if(!d.alsoRace)d.alsoRace={};
+  if(!d.alsoRace[dayId])d.alsoRace[dayId]={};
+  if(e.target.checked)d.alsoRace[dayId][dist]={time:'',pace:'',hr:''};
+  else delete d.alsoRace[dayId][dist];
+  save();renderWeek();
+ });
+ app.querySelectorAll('[data-alsoracetime]').forEach(inp=>{
+  inp.oninput=e=>{
+   const [dayId,dist]=e.target.dataset.alsoracetime.split('|');
+   if(d.alsoRace&&d.alsoRace[dayId]&&d.alsoRace[dayId][dist])d.alsoRace[dayId][dist].time=e.target.value;
+   validateField(e.target,'time','also.'+dayId+'|'+dist+'.time');
+   clearTimeout(saveTimer);saveTimer=setTimeout(save,700);
+  };
+  inp.onblur=()=>{
+   clearTimeout(saveTimer);
+   const [dayId,dist]=inp.dataset.alsoracetime.split('|');
+   normalizeAlsoRaceField(d,dayId,dist,'time');
+   save();renderWeek();
+  };
+ });
+ app.querySelectorAll('[data-alsoracepace]').forEach(inp=>{
+  inp.oninput=e=>{
+   const [dayId,dist]=e.target.dataset.alsoracepace.split('|');
+   if(d.alsoRace&&d.alsoRace[dayId]&&d.alsoRace[dayId][dist])d.alsoRace[dayId][dist].pace=e.target.value;
+   validateField(e.target,'pace','also.'+dayId+'|'+dist+'.pace');
+   clearTimeout(saveTimer);saveTimer=setTimeout(save,700);
+  };
+  inp.onblur=()=>{
+   clearTimeout(saveTimer);
+   const [dayId,dist]=inp.dataset.alsoracepace.split('|');
+   normalizeAlsoRaceField(d,dayId,dist,'pace');
+   save();renderWeek();
+  };
+ });
+ app.querySelectorAll('[data-alsoracehr]').forEach(inp=>{
+  inp.oninput=e=>{
+   const [dayId,dist]=e.target.dataset.alsoracehr.split('|');
+   if(d.alsoRace&&d.alsoRace[dayId]&&d.alsoRace[dayId][dist])d.alsoRace[dayId][dist].hr=e.target.value;
+   validateField(e.target,'hr','also.'+dayId+'|'+dist+'.hr');
+   clearTimeout(saveTimer);saveTimer=setTimeout(save,700);
+  };
+  inp.onblur=()=>{
+   clearTimeout(saveTimer);
+   const [dayId,dist]=inp.dataset.alsoracehr.split('|');
+   normalizeAlsoRaceField(d,dayId,dist,'hr');
+   save();renderWeek();
+  };
  });
  app.querySelectorAll('[data-tier]').forEach(b=>b.onclick=()=>{
   const [dayId,variantId]=b.dataset.tier.split('|');
@@ -3579,7 +3738,6 @@ function bindWeek(app,d){
    if(!d.res[p[0]])d.res[p[0]]={};
    d.res[p[0]][p[1]]=e.target.value;
    validateField(e.target,p[1]);
-   if(p[1]==='time'||p[1]==='dist')syncPace(d,p[0]);
    const muscKey=p[1].endsWith('Per')?p[1].slice(0,-3):p[1];
    if(Object.prototype.hasOwnProperty.call(MUSC,muscKey)){
     syncSets(d,p[0]);
@@ -3596,7 +3754,6 @@ function bindWeek(app,d){
    clearTimeout(saveTimer);
    const p=i.dataset.res.split('.');
    normalizeResField(d,p[0],p[1]);
-   if(p[1]==='time'||p[1]==='dist'||p[1]==='pace')syncPace(d,p[0]);
    save();renderWeek();
   };
  });
