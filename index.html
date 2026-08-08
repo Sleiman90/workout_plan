@@ -23,6 +23,10 @@
   --t1:#3d6f57; --t2:#b0801f; --t3:#a3311c;
   --track-rgb:189,67,38;
   --r1:#ff6a2e; --r2:#e85a26; --r3:#bd4326; --r4:#93331d; --r5:#6b2513;
+  /* categorical (unordered) — distinct hues for Easy/Speed/Long/Strength/Rest */
+  --c1:#bd4326; --c2:#a3311c; --c3:#7a4a2e; --c4:#c9862e; --c5:#8a7862;
+  /* graduated (ordered magnitude) — for 3-tier scales like knee load or session hardness */
+  --g1:#d9b48c; --g2:#c97840; --g3:#bd4326;
 }
 html[data-theme="dark"]{
   --stock:#000000; --card:#0d0d0d; --sunk:#000000;
@@ -31,6 +35,8 @@ html[data-theme="dark"]{
   --t1:#5fa885; --t2:#d9a53d; --t3:#e0644a;
   --track-rgb:255,112,67;
   --r1:#ffab7a; --r2:#ff8659; --r3:#ff7043; --r4:#d9592f; --r5:#b3461f;
+  --c1:#ff7043; --c2:#e0644a; --c3:#c98a5c; --c4:#d9a53d; --c5:#a89178;
+  --g1:#8a6a4a; --g2:#e0834a; --g3:#ff7043;
 }
 body{transition:background-color .2s ease,color .2s ease;}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -83,10 +89,10 @@ body{background:var(--stock);color:var(--ink);font-family:'Archivo',system-ui,sa
   font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-faint);}
 .tick:focus-visible{outline:2px solid var(--track);outline-offset:1px;}
 .tick .bar{width:2px;height:20px;background:var(--rule);transition:height .2s,background .2s;}
-.tick.past .bar{background:rgba(var(--track-rgb),.55);}
+.tick.past .bar{background:var(--g2);}
 .tick.race .bar{height:32px;background:var(--track);width:3px;}
 .tick.here .bar{height:38px;background:var(--track);width:3px;}
-.tick.here{color:var(--track);font-weight:500;} .tick.past{color:rgba(var(--track-rgb),.75);}
+.tick.here{color:var(--track);font-weight:500;} .tick.past{color:var(--g2);}
 .tape-rule{height:1px;background:var(--rule);margin-top:2px;}
 
 /* week head */
@@ -273,7 +279,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 .statbox.week h4{color:var(--track);} .statbox.all h4{color:var(--lane);}
 .statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 10px;}
 .st .k{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--ink-faint);margin-bottom:3px;}
+  color:var(--ink);font-weight:700;margin-bottom:3px;}
 .st .v{font-family:'Anton',sans-serif;font-size:21px;line-height:1;}
 .st .u{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:3px;}
 @media (min-width:700px){.statwrap{grid-template-columns:1fr 1fr;}.statgrid{grid-template-columns:repeat(3,1fr);}}
@@ -363,7 +369,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 .stabs button:focus-visible{outline:2px solid var(--track);outline-offset:-2px;}
 .sblock{margin-top:20px;}
 .sblock h5{font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
-  color:var(--ink-soft);margin-bottom:10px;font-weight:400;}
+  color:var(--ink);margin-bottom:10px;font-weight:700;}
 .sblock .sub{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
   color:var(--ink-faint);margin-bottom:7px;}
 .two{display:grid;grid-template-columns:1fr;gap:16px;}
@@ -372,7 +378,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
   background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:14px;}
 @media(min-width:520px){.statgrid{grid-template-columns:repeat(3,1fr);}}
 .st .k{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--ink-faint);margin-bottom:4px;}
+  color:var(--ink);font-weight:700;margin-bottom:4px;}
 .st .v{font-family:'Anton',sans-serif;font-size:23px;line-height:1;}
 .st .v .of{font-size:14px;color:var(--ink-faint);}
 .st .u{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--ink-faint);margin-top:3px;}
@@ -397,7 +403,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 .heat-w{font-family:'DM Mono',monospace;font-size:8.5px;color:var(--ink-faint);flex:0 0 16px;text-align:right;}
 .heat-h{font-family:'DM Mono',monospace;font-size:8.5px;color:var(--ink-faint);flex:1;text-align:center;}
 .heat-c{flex:1;height:11px;background:var(--sunk);border-radius:1px;}
-.heat-c.s{background:rgba(var(--track-rgb),.45);}
+.heat-c.s{background:var(--g2);}
 .heat-c.k{background:var(--track);}
 .heat-c.cur{outline:1px solid var(--ink-faint);outline-offset:-1px;}
 .radar svg{width:100%;max-width:220px;height:auto;display:block;margin:0 auto;}
@@ -461,7 +467,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 .ex-list{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:3px;}
 .ex-list li{font-size:12.5px;color:var(--ink);display:flex;align-items:center;gap:7px;}
 .ex-list li::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--track);flex:0 0 auto;}
-.ex-list li.hip::before{background:rgba(var(--track-rgb),.55);}
+.ex-list li.hip::before{background:var(--c3);}
 .ex-list li.other::before{background:var(--ink-faint);}
 .ex-list li span{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--ink-faint);margin-left:auto;}
 
@@ -470,7 +476,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 .legend{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--ink-faint);
   margin-bottom:8px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
 .lg{width:9px;height:9px;border-radius:1px;background:var(--sunk);display:inline-block;}
-.lg.s{background:rgba(var(--track-rgb),.4);} .lg.k{background:var(--track);}
+.lg.s{background:var(--g2);} .lg.k{background:var(--track);}
 
 /* week complete */
 .week-flag.done{background:var(--track);}
@@ -2503,11 +2509,11 @@ function agg(from,to){
 }
 function typeCountRows(counts){
  return [
-  {l:'Easy run',v:counts.easy,c:'rgba(var(--track-rgb),1)'},
-  {l:'Speed',v:counts.speed,c:'rgba(var(--track-rgb),.75)'},
-  {l:'Long run',v:counts.long,c:'rgba(var(--track-rgb),.55)'},
-  {l:'Strength',v:counts.strength,c:'rgba(var(--track-rgb),.38)'},
-  {l:'Rest',v:counts.rest,c:'rgba(var(--track-rgb),.22)'}
+  {l:'Easy run',v:counts.easy,c:'var(--c1)'},
+  {l:'Speed',v:counts.speed,c:'var(--c2)'},
+  {l:'Long run',v:counts.long,c:'var(--c3)'},
+  {l:'Strength',v:counts.strength,c:'var(--c4)'},
+  {l:'Rest',v:counts.rest,c:'var(--c5)'}
  ];
 }
 function streak(){
@@ -2625,9 +2631,9 @@ function kneeIntensityRows(exCount){
   const e=exFind(id);if(!e||!inG(e,'knee'))return;
   const L=loadOf(id)[0];if(L>0)b[L]+=exCount[id];
  });
- return [{l:'Low load',v:b[1],c:'rgba(var(--track-rgb),.40)'},
-         {l:'Moderate',v:b[2],c:'rgba(var(--track-rgb),.70)'},
-         {l:'High load',v:b[3],c:'var(--track)'}];
+ return [{l:'Low load',v:b[1],c:'var(--g1)'},
+         {l:'Moderate',v:b[2],c:'var(--g2)'},
+         {l:'High load',v:b[3],c:'var(--g3)'}];
 }
 function panelWeek(){
  const w=state.week,a=agg(w,w);
@@ -2643,15 +2649,15 @@ function panelWeek(){
  ]);
  h+=sec('Sessions by type',hbar(typeCountRows(a.typeCounts),''),'days ticked, by type');
  h+=sec('Distance by session',hbar([
-  {l:'Easy',v:+a.kmType.easy.toFixed(1),c:'rgba(var(--track-rgb),1)'},
-  {l:'Speed',v:+a.kmType.speed.toFixed(1),c:'rgba(var(--track-rgb),.75)'},
-  {l:'Long',v:+a.kmType.long.toFixed(1),c:'rgba(var(--track-rgb),.55)'}],' km'),'kilometres run');
+  {l:'Easy',v:+a.kmType.easy.toFixed(1),c:'var(--c1)'},
+  {l:'Speed',v:+a.kmType.speed.toFixed(1),c:'var(--c2)'},
+  {l:'Long',v:+a.kmType.long.toFixed(1),c:'var(--c3)'}],' km'),'kilometres run');
  (function(){
   const hrByType=a.weeks[0].hrAvgByType;
   h+=sec('Heart rate',hbar([
-   {l:'Easy',v:hrByType.easy?Math.round(hrByType.easy):0,c:'rgba(var(--track-rgb),1)'},
-   {l:'Speed',v:hrByType.speed?Math.round(hrByType.speed):0,c:'rgba(var(--track-rgb),.75)'},
-   {l:'Long',v:hrByType.long?Math.round(hrByType.long):0,c:'rgba(var(--track-rgb),.55)'}
+   {l:'Easy',v:hrByType.easy?Math.round(hrByType.easy):0,c:'var(--c1)'},
+   {l:'Speed',v:hrByType.speed?Math.round(hrByType.speed):0,c:'var(--c2)'},
+   {l:'Long',v:hrByType.long?Math.round(hrByType.long):0,c:'var(--c3)'}
   ],' bpm'),'avg bpm by session type');
  })();
  h+=sec('Strength',bigRow([
@@ -2679,26 +2685,27 @@ function panelAll(){
   big('Weeks done',a.full,'of '+w),
   big('Streak',streak(),'sessions')
  ]);
- h+=sec('Distance per week',vbar(ws.map(x=>({l:x.w,v:+x.km.toFixed(1),d:x.km?x.km.toFixed(0):'',cur:x.w===w})),''),'km · bar = one week');
+ h+=sec('Distance per week',lineChart(ws.map(x=>({l:x.w,v:x.km})),v=>v.toFixed(1)+' km'),'total km per week, left→right = week 1→'+w);
+ h+=sec('Time on feet trend',lineChart(ws.map(x=>({l:x.w,v:x.secs})),v=>fmtDur(v)),'total time on feet per week, all activities, left→right = week 1→'+w);
  h+=sec('Distance by session',hbar([
-  {l:'Easy',v:+a.kmType.easy.toFixed(1),c:'rgba(var(--track-rgb),1)'},
-  {l:'Speed',v:+a.kmType.speed.toFixed(1),c:'rgba(var(--track-rgb),.75)'},
-  {l:'Long',v:+a.kmType.long.toFixed(1),c:'rgba(var(--track-rgb),.55)'}],' km'),'kilometres run');
+  {l:'Easy',v:+a.kmType.easy.toFixed(1),c:'var(--c1)'},
+  {l:'Speed',v:+a.kmType.speed.toFixed(1),c:'var(--c2)'},
+  {l:'Long',v:+a.kmType.long.toFixed(1),c:'var(--c3)'}],' km'),'kilometres run');
  h+=sec('Sessions by type',hbar(typeCountRows(a.typeCounts),''),'days ticked, by type, across all weeks');
  h+=sec('Pace trend',lineChart(ws.map(x=>({l:x.w,v:x.pace})),v=>fmtPace(v)+'/km'),'avg running pace per week, left→right = week 1→'+w);
  if(ws.some(x=>x.paceByType.easy))h+=sec('Easy run pace trend',lineChart(ws.map(x=>({l:x.w,v:x.paceByType.easy})),v=>fmtPace(v)+'/km'),'avg pace per week, left→right = week 1→'+w);
  if(ws.some(x=>x.paceByType.speed))h+=sec('Speed session pace trend',lineChart(ws.map(x=>({l:x.w,v:x.paceByType.speed})),v=>fmtPace(v)+'/km'),'avg pace per week, left→right = week 1→'+w);
  if(ws.some(x=>x.paceByType.long))h+=sec('Long run pace trend',lineChart(ws.map(x=>({l:x.w,v:x.paceByType.long})),v=>fmtPace(v)+'/km'),'avg pace per week, left→right = week 1→'+w);
- h+=sec('Strength volume per week',vbar(ws.map(x=>({l:x.w,v:x.sets,cur:x.w===w})),''),'sets · bar = one week');
+ h+=sec('Strength volume per week',lineChart(ws.map(x=>({l:x.w,v:x.sets})),v=>Math.round(v)+' sets'),'sets per week, left→right = week 1→'+w);
  h+=sec('Strength by muscle group',hbar(muscleRows(a.muscles),' ex'),'exercises logged');
  h+=sec('Speed sessions by level',hbar([
-  {l:'Steady',v:a.hardness.easy,c:'rgba(var(--track-rgb),.4)'},
-  {l:'Standard',v:a.hardness.medium,c:'rgba(var(--track-rgb),.7)'},
-  {l:'Peak',v:a.hardness.hard,c:'rgba(var(--track-rgb),1)'}],' wks'),'weeks at each level');
+  {l:'Steady',v:a.hardness.easy,c:'var(--g1)'},
+  {l:'Standard',v:a.hardness.medium,c:'var(--g2)'},
+  {l:'Peak',v:a.hardness.hard,c:'var(--g3)'}],' wks'),'weeks at each level');
  h+=sec('Elevation',bigRow([
   big('Total gain',a.elevGain?Math.round(a.elevGain):'—','m climbed'),
   big('Total loss',a.elevLoss?Math.round(a.elevLoss):'—','m descended')
- ])+vbar(ws.map(x=>({l:x.w,v:Math.round(x.elevGain||0),cur:x.w===w})),' m'),'gain per week · bar = one week');
+ ])+lineChart(ws.map(x=>({l:x.w,v:x.elevGain})),v=>Math.round(v)+' m'),'gain per week, left→right = week 1→'+w);
  if(ws.some(x=>x.avgHR))h+=sec('Heart rate trend',lineChart(ws.map(x=>({l:x.w,v:x.avgHR})),v=>Math.round(v)+' bpm'),'avg bpm per week across all session types, left→right = week 1→'+w);
  if(ws.some(x=>x.hrAvgByType.easy))h+=sec('Easy run HR trend',lineChart(ws.map(x=>({l:x.w,v:x.hrAvgByType.easy})),v=>Math.round(v)+' bpm'),'avg bpm per week, left→right = week 1→'+w);
  if(ws.some(x=>x.hrAvgByType.speed))h+=sec('Speed session HR trend',lineChart(ws.map(x=>({l:x.w,v:x.hrAvgByType.speed})),v=>Math.round(v)+' bpm'),'avg bpm per week, left→right = week 1→'+w);
@@ -2795,9 +2802,9 @@ async function shareWeekImage(){
  cy+=50;
 
  const distRows=[
-  {l:'Easy',v:a.kmType.easy,c:'rgba(189,67,38,1)'},
-  {l:'Speed',v:a.kmType.speed,c:'rgba(189,67,38,.75)'},
-  {l:'Long',v:a.kmType.long,c:'rgba(189,67,38,.55)'}
+  {l:'Easy',v:a.kmType.easy,c:'#bd4326'},
+  {l:'Speed',v:a.kmType.speed,c:'#a3311c'},
+  {l:'Long',v:a.kmType.long,c:'#7a4a2e'}
  ].filter(r=>r.v>0.05);
  if(distRows.length){
   ctx.fillStyle='#15171a';ctx.font="30px 'Anton',sans-serif";
@@ -2817,7 +2824,7 @@ async function shareWeekImage(){
   cy+=32;
  }
 
- const TYPE_HEX={easy:'rgba(189,67,38,1)',speed:'rgba(189,67,38,.75)',long:'rgba(189,67,38,.55)',strength:'rgba(189,67,38,.38)',rest:'rgba(189,67,38,.22)'};
+ const TYPE_HEX={easy:'#bd4326',speed:'#a3311c',long:'#7a4a2e',strength:'#c9862e',rest:'#8a7862'};
  const TYPE_LBL={easy:'Easy run',speed:'Speed',long:'Long run',strength:'Strength',rest:'Rest'};
  const typeRow=['easy','speed','long','strength','rest'].filter(k=>a.typeCounts[k]>0)
   .map(k=>({l:TYPE_LBL[k],v:a.typeCounts[k],c:TYPE_HEX[k]}));
