@@ -1870,7 +1870,7 @@ const INTERVAL=[
 const CORE=['mon','tue','wed','thu','fri','sat','sun'];
 const DAYLBL={mon:'Mon',tue:'Tue',wed:'Wed',thu:'Thu',fri:'Fri',sat:'Sat',sun:'Sun'};
 const MUSC={chest:'Chest',shoulders:'Shoulders',back:'Back',biceps:'Biceps',triceps:'Triceps',legs:'Legs'};
-const START=new Date(2026,7,10), KEY='sub20_v2', SET='sub20_settings';
+const START=new Date(2026,6,27), KEY='sub20_v2', SET='sub20_settings';
 
 /* ═══ race distances ═══ */
 const RACE_ORDER=['5k','10k','half','marathon'];
@@ -1914,9 +1914,11 @@ function orderSelect(d,w,dayId,type){
 }
 
 /* fresh install starts with a single seeded result: a 5K PB of 22:40 (4:33/km, 176bpm),
-   logged on week 1's long-run slot — everything else starts blank */
+   logged the week before the program's current week — so it reads as a real PB from
+   last week rather than something you'd have to log again. The current week (2)
+   starts blank. */
 let state={
- week:1,total:20,
+ week:2,total:20,
  weeks:{1:{
   days:{sat:true},
   order:['push','easy','pull','speed','full','5k','rest'],
@@ -2282,7 +2284,7 @@ async function load(){
 /* one-time reset gate: bumping this discards whatever was previously saved
    in the browser (old demo data, old logs) and starts fresh from the seeded
    default state above, exactly once — after that first save, it's "locked in" */
-const RESET_TAG='reset-2026-08-v1';
+const RESET_TAG='reset-2026-08-v2';
 async function save(){
  state.resetTag=RESET_TAG;
  try{await window.storage.set(KEY,JSON.stringify(state));}
@@ -3339,7 +3341,7 @@ function pips(val){
   const on=val>=i;
   h+='<span class="pip'+(on?' on':'')+'"'+(on?' style="background:'+rateColor(val)+';border-color:var(--ink-faint)"':'')+'></span>';
  }
- return h+'</div><span class="rate-v">'+(val?val+'/5':'—')+'</span>';
+ return h+'</div>';
 }
 function rateRow(label,cat,R){
  return '<div class="rate"><span class="rate-l">'+label+'</span>'+pips(R.v[cat]||0)+
@@ -3478,14 +3480,12 @@ function renderWeek(){
     daysHtml+='<div class="lvlgroup'+(open?' on':'')+'">';
     daysHtml+='<button class="lvlhead '+base.c+'" data-lvlgroup="'+dayId+'|'+base.id+'" aria-expanded="'+open+'">'+
      '<span class="tier-name"><span class="tier-dot"></span>'+base.n+
-     (variants.length>1?'<span class="tier-mine">'+variants.length+'</span>':'')+'</span>'+
-     '<span class="tier-dur">'+base.d+'</span></button>';
+     (variants.length>1?'<span class="tier-mine">'+variants.length+'</span>':'')+'</span></button>';
     if(open){
      daysHtml+='<div class="lvlbody">';
      variants.forEach(v=>{const s=dTier===v.id,mine=v.id!==base.id;
       daysHtml+='<button class="variant'+(s?' on':'')+'" data-tier="'+dayId+'|'+v.id+'" aria-pressed="'+s+'">'+
-       (variants.length>1?'<div class="variant-name">'+(mine?esc(v.n)+' <span class="tier-mine">yours</span>':'Original')+
-        '<span class="tier-dur">'+(mine?esc(v.d):v.d)+'</span></div>':'')+
+       (variants.length>1?'<div class="variant-name">'+(mine?esc(v.n)+' <span class="tier-mine">yours</span>':'Original')+'</div>':'')+
        '<div class="tier-struct">'+(mine?esc(v.s):v.s)+'</div>'+
        (v.e?'<div class="tier-ext">'+v.e+'</div>':'')+
        (mine?'<span class="variant-actions">'+
