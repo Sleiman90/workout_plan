@@ -408,6 +408,8 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 .trend svg{width:100%;height:auto;display:block;}
 .trend-pt{cursor:pointer;}
 .trend-pt:focus-visible circle:last-child{stroke:var(--track);stroke-width:2;}
+.trend-dot{transition:r .15s ease;}
+.trend-dot.active{stroke:#ffffff;stroke-width:2.5px;}
 .heat{display:flex;flex-direction:column;gap:2px;}
 .heat-row{display:flex;gap:2px;align-items:center;}
 .heat-w{font-family:'DM Mono',monospace;font-size:8.5px;color:var(--ink-faint);flex:0 0 16px;text-align:right;}
@@ -2793,7 +2795,7 @@ function lineChart(series,fmt,invert){
   const cx=p[0].toFixed(1),cy=p[1].toFixed(1);
   return '<g class="trend-pt" tabindex="0" data-tip="'+tip+'" data-cx="'+cx+'" data-cy="'+cy+'">'+
    '<circle cx="'+cx+'" cy="'+cy+'" r="14" fill="transparent"/>'+
-   '<circle cx="'+cx+'" cy="'+cy+'" r="4.2" fill="var(--track)"/></g>';
+   '<circle class="trend-dot" cx="'+cx+'" cy="'+cy+'" r="4.2" fill="var(--track)"/></g>';
  }).join('');
  const TICKS=4;
  let grid='',labels='';
@@ -2811,17 +2813,25 @@ function lineChart(series,fmt,invert){
 }
 function initTrendTooltips(){
  const ns='http://www.w3.org/2000/svg';
+ function clearActiveDot(svg){
+  const d=svg.querySelector('.trend-dot.active');
+  if(d){d.classList.remove('active');d.setAttribute('r','4.2');}
+ }
  document.addEventListener('click',e=>{
   const pt=e.target.closest?e.target.closest('.trend-pt'):null;
   if(!pt){
    document.querySelectorAll('.trend-tip').forEach(t=>t.remove());
+   document.querySelectorAll('.trend-dot.active').forEach(d=>{d.classList.remove('active');d.setAttribute('r','4.2');});
    return;
   }
   const svg=pt.closest('svg');if(!svg)return;
   const key=pt.dataset.cx+'-'+pt.dataset.cy;
   const already=svg.querySelector('.trend-tip[data-for="'+key+'"]');
   svg.querySelectorAll('.trend-tip').forEach(t=>t.remove());
+  clearActiveDot(svg);
   if(already)return;
+  const dot=pt.querySelector('.trend-dot');
+  if(dot){dot.classList.add('active');dot.setAttribute('r','6.5');}
   const cx=+pt.dataset.cx,cy=+pt.dataset.cy;
   const label=pt.dataset.tip;
   const vb=svg.viewBox.baseVal;
@@ -2840,13 +2850,13 @@ function initTrendTooltips(){
   rect.setAttribute('x',tx);rect.setAttribute('y',ty);
   rect.setAttribute('width',w);rect.setAttribute('height',h);
   rect.setAttribute('rx',4);
-  rect.setAttribute('fill','var(--ink)');
+  rect.setAttribute('fill','var(--track)');
   const text=document.createElementNS(ns,'text');
   text.setAttribute('x',tx+w/2);text.setAttribute('y',ty+h/2+5);
   text.setAttribute('text-anchor','middle');
   text.setAttribute('font-size','14');
   text.setAttribute('font-family',"'DM Mono',monospace");
-  text.setAttribute('fill','var(--card)');
+  text.setAttribute('fill','#ffffff');
   text.textContent=label;
   g.appendChild(rect);g.appendChild(text);
   svg.appendChild(g);
