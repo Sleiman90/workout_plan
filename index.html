@@ -1994,7 +1994,7 @@ function normalizeResField(d,dayKey,fieldKey){
  } else if(isNumericField(fieldKey)&&NUMFIELDS.indexOf(fieldKey)>=0){
   const n=parseFlexibleNumber(raw);
   if(isNaN(n))return;
-  r[fieldKey]=fieldKey==='dist'?n.toFixed(1):String(Math.round(n));
+  r[fieldKey]=String(n);
  }
 }
 /* same cleanup as normalizeResField, but for a split logged inside a longer run */
@@ -2008,7 +2008,7 @@ function normalizeAlsoRaceField(d,dayId,dist,fieldKey){
  } else if(fieldKey==='hr'){
   const n=parseFlexibleNumber(raw);
   if(isNaN(n))return;
-  s[fieldKey]=String(Math.round(n));
+  s[fieldKey]=String(n);
  }
 }
 function acc(key,title,meta,body,done){
@@ -2588,10 +2588,14 @@ function autoRate(w){
  else if(load>0){v.rest=3;why.rest='no rest logged';}
  else{v.rest=0;why.rest='nothing logged';}
 
- // overall — the mean of whatever actually happened
- const got=['easy','strength','speed','long','rest'].map(k=>v[k]).filter(x=>x>0);
+ // overall — strict: every one of the five areas counts, including the
+ // ones you skipped (worth 0), so overall reflects the whole week, not
+ // just an average of whatever you happened to do
+ const cats=['easy','strength','speed','long','rest'];
+ const got=cats.map(k=>v[k]).filter(x=>x>0);
  if(got.length){
-  v.overall=clamp(Math.round(got.reduce((a,b)=>a+b,0)/got.length));
+  const total=cats.reduce((a,k)=>a+(v[k]||0),0);
+  v.overall=clamp(Math.round(total/cats.length));
   why.overall=got.length+' of 5 areas logged';
  }else{v.overall=0;why.overall='nothing logged yet';}
  return {v:v,why:why};
@@ -3003,6 +3007,7 @@ function panelAll(from,to){
  ]);
  h+=sec('Distance per week',lineChart(ws.map(x=>({l:x.w,v:x.km})),v=>v.toFixed(1)+' km'),'total km per week, left→right = '+rangeLbl);
  h+=sec('Time on feet trend',lineChart(ws.map(x=>({l:x.w,v:x.secs})),v=>fmtDur(v)),'total time on feet per week, all activities, left→right = '+rangeLbl);
+ h+=sec('Overall rating trend',lineChart(ws.map(x=>({l:x.w,v:x.rate.overall})),v=>v+'/5'),'overall rating per week, left→right = '+rangeLbl);
  h+=sec('Distance by session',hbar([
   {l:'Easy',v:+a.kmType.easy.toFixed(1)},
   {l:'Speed',v:+a.kmType.speed.toFixed(1)},
