@@ -380,6 +380,8 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
   font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;
   color:var(--track);cursor:pointer;}
 .sblock{margin-top:20px;}
+.stat-group-h{font-family:'DM Mono',monospace;font-size:11.5px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--track);font-weight:700;margin:30px 0 -6px;padding-top:18px;border-top:1px solid var(--rule);}
 .sblock h5{font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
   color:var(--ink);margin-bottom:10px;font-weight:700;}
 .sblock .sub{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
@@ -2672,35 +2674,39 @@ function weekAgg(w){
  const kmType={easy:0,speed:0,long:0};
  const hrByType={easy:{sum:0,n:0},speed:{sum:0,n:0},long:{sum:0,n:0}};
  const kmByType={easy:0,speed:0,long:0},secsByType={easy:0,speed:0,long:0};
- ['easy','speed','long'].forEach(type=>{
+ /* every day that's an actual run counts toward the week's overall totals —
+    distance, time, elevation, avg HR — including 5K/10K/Half/Marathon race
+    days, which used to be silently skipped here entirely. Race days (and
+    "other" activities) are still kept out of the easy/speed/long *breakdown*
+    stats specifically, same as before, since they're not really any of those
+    three — they fold into the Distance-by-session bucket instead, the same
+    way an "other" activity already did. */
+ ['easy','speed','long','5k','10k','half','marathon'].forEach(type=>{
   slotsOfType(d,type).forEach(k=>{
    if(!days[k])return;
    const r=res[k];if(!r)return;
-   /* an "other" activity covers real ground in real time, so it still counts
-      toward weekly distance/time — but it isn't a running pace, so it's kept
-      out of the pace/fastest-km/duration stats below, which would otherwise
-      be skewed by it. Under 10km it reads as an easy effort, 10km or more
-      reads as the week's long effort. */
    const isOther=(type==='long'&&satModeOf(d,k)==='other');
+   const isRaceDist=RACE_ORDER.indexOf(type)>=0;
+   const skipBreakdown=isOther||isRaceDist;
    const v=parseFloat(r.dist)||0,t=parseHMS(r.time);
    if(v>0){
     km+=v;runs++;if(v>longest)longest=v;
     let bucket=type;
     if(type==='speed'&&wedTypeOf(d,k,w)==='easy')bucket='easy';
-    if(isOther)bucket=(v<10.0?'easy':'long');
+    if(isOther||isRaceDist)bucket=(v<10.0?'easy':'long');
     kmType[bucket]+=v;
-    if(!isOther){paceKm+=v;kmByType[type]+=v;
+    if(!skipBreakdown){paceKm+=v;kmByType[type]+=v;
      if(t>0){const p=t/v;if(fastest===null||p<fastest)fastest=p;}}
    }
    secs+=t;
-   if(!isOther){paceSecs+=t;secsByType[type]+=t;}
+   if(!skipBreakdown){paceSecs+=t;secsByType[type]+=t;}
    const eg=parseFloat(r.elevGain),el=parseFloat(r.elevLoss);
    if(!isNaN(eg)&&eg>0)elevGain+=eg;
    if(!isNaN(el)&&el>0)elevLoss+=el;
    const hr=parseFloat(r.hr);
    if(!isNaN(hr)&&hr>0){
     hrSum+=hr;hrN++;
-    if(!isOther){hrByType[type].sum+=hr;hrByType[type].n++;}
+    if(!skipBreakdown){hrByType[type].sum+=hr;hrByType[type].n++;}
    }
   });
  });
@@ -2783,15 +2789,6 @@ function typeCountRows(counts){
   {l:'Rest',v:counts.rest}
  ];
 }
-function streak(){
- const seq=[];
- for(let w=1;w<=state.total;w++){const d=state.weeks[w]||{},days=d.days||{};CORE.forEach(k=>seq.push(!!days[k]));}
- let last=-1;for(let i=seq.length-1;i>=0;i--){if(seq[i]){last=i;break;}}
- if(last<0)return 0;
- let n=0;for(let i=last;i>=0;i--){if(seq[i])n++;else break;}
- return n;
-}
-
 /* ═══ chart primitives ═══ */
 function nodata(m){return '<p class="nodata">'+(m||'Nothing logged here yet.')+'</p>';}
 function big(k,v,u){return '<div class="st"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="u">'+(u||'')+'</div></div>';}
@@ -2944,6 +2941,7 @@ function rateColor(v){return v>0?'var(--r'+Math.max(1,Math.min(5,Math.round(v)))
 
 /* ═══ stats panels ═══ */
 function sec(t,body,metric){return '<div class="sblock"><h5>'+t+(metric?'<span class="metric">'+metric+'</span>':'')+'</h5>'+body+'</div>';}
+function groupHeader(label){return '<div class="stat-group-h">'+label+'</div>';}
 function muscleRows(m){return Object.keys(MUSC).map(k=>({l:MUSC[k],v:m[k]||0})).filter(r=>r.v>0);}
 function topRows(c,lim,only){
  return Object.keys(c).map(id=>{const e=exFind(id);
@@ -2969,7 +2967,6 @@ function panelWeek(){
   big('Avg pace',a.pace?fmtPace(a.pace):'—','per km'),
   big('Sessions',a.sessions+'<span class="of">/7</span>','ticked'),
   big('Longest',a.longest?fmtKm(a.longest):'—','km'),
-  big('Avg HR',a.avgHR?Math.round(a.avgHR):'—','bpm'),
   big('Elev gain',a.elevGain?Math.round(a.elevGain):'—','m'),
   big('Elev loss',a.elevLoss?Math.round(a.elevLoss):'—','m')
  ]);
@@ -3017,16 +3014,13 @@ function panelAll(from,to){
   big('Time',fmtDur(a.secs),'on feet'),
   big('Avg pace',a.pace?fmtPace(a.pace):'—','per km'),
   big('Sessions',a.sessions,'of '+(7*(to-from+1))),
-  big('Weeks done',a.full,'of '+(to-from+1)),
-  big('Streak',streak(),'sessions')
+  big('Weeks done',a.full,'of '+(to-from+1))
  ]);
+
+ h+=groupHeader('Overview');
  h+=sec('Distance per week',lineChart(ws.map(x=>({l:x.w,v:x.km})),v=>fmtKm(v)+' km'),'total km per week, left→right = '+rangeLbl);
  h+=sec('Time on feet trend',lineChart(ws.map(x=>({l:x.w,v:x.secs})),v=>fmtDur(v)),'total time on feet per week, all activities, left→right = '+rangeLbl);
  h+=sec('Overall rating trend',lineChart(ws.map(x=>({l:x.w,v:x.rate.overall})),v=>v+'/5'),'overall rating per week, left→right = '+rangeLbl);
- h+=sec('Distance by session',hbar([
-  {l:'Easy',v:+fmtKm(a.kmType.easy)},
-  {l:'Speed',v:+fmtKm(a.kmType.speed)},
-  {l:'Long',v:+fmtKm(a.kmType.long)}],' km'),'kilometres run');
  h+=sec('Sessions by type',hbar(typeCountRows(a.typeCounts),''),'days ticked, by type, across all weeks');
  h+=sec('Race distances',hbar([
   {l:'5K',v:a.raceCounts['5k']},
@@ -3034,30 +3028,50 @@ function panelAll(from,to){
   {l:'Half',v:a.raceCounts.half},
   {l:'Marathon',v:a.raceCounts.marathon}
  ],' done'),'sessions logged at each distance, '+rangeLbl);
+
+ h+=groupHeader('Pace');
  h+=sec('Pace trend',lineChart(ws.map(x=>({l:x.w,v:x.pace})),v=>fmtPace(v)+'/km'),'avg running pace per week, left→right = '+rangeLbl);
  h+=sec('Easy run pace trend',lineChart(ws.map(x=>({l:x.w,v:x.paceByType.easy})),v=>fmtPace(v)+'/km'),'avg pace per week, left→right = '+rangeLbl);
  h+=sec('Speed session pace trend',lineChart(ws.map(x=>({l:x.w,v:x.paceByType.speed})),v=>fmtPace(v)+'/km'),'avg pace per week, left→right = '+rangeLbl);
  h+=sec('Long run pace trend',lineChart(ws.map(x=>({l:x.w,v:x.paceByType.long})),v=>fmtPace(v)+'/km'),'avg pace per week, left→right = '+rangeLbl);
+
+ h+=groupHeader('Distance');
+ h+=sec('Distance by session',hbar([
+  {l:'Easy',v:+fmtKm(a.kmType.easy)},
+  {l:'Speed',v:+fmtKm(a.kmType.speed)},
+  {l:'Long',v:+fmtKm(a.kmType.long)}],' km'),'kilometres run');
  h+=sec('Easy run distance trend',lineChart(ws.map(x=>({l:x.w,v:x.kmByType.easy})),v=>fmtKm(v)+' km'),'km per week, left→right = '+rangeLbl);
  h+=sec('Speed session distance trend',lineChart(ws.map(x=>({l:x.w,v:x.kmByType.speed})),v=>fmtKm(v)+' km'),'km per week, left→right = '+rangeLbl);
  h+=sec('Long run distance trend',lineChart(ws.map(x=>({l:x.w,v:x.kmByType.long})),v=>fmtKm(v)+' km'),'km per week, left→right = '+rangeLbl);
+
+ h+=groupHeader('Heart rate');
+ h+=sec('Heart rate trend',lineChart(ws.map(x=>({l:x.w,v:x.avgHR})),v=>Math.round(v)+' bpm'),'avg bpm per week across all session types, left→right = '+rangeLbl);
+ h+=sec('Easy run HR trend',lineChart(ws.map(x=>({l:x.w,v:x.hrAvgByType.easy})),v=>Math.round(v)+' bpm'),'avg bpm per week, left→right = '+rangeLbl);
+ h+=sec('Speed session HR trend',lineChart(ws.map(x=>({l:x.w,v:x.hrAvgByType.speed})),v=>Math.round(v)+' bpm'),'avg bpm per week, left→right = '+rangeLbl);
+ h+=sec('Long run HR trend',lineChart(ws.map(x=>({l:x.w,v:x.hrAvgByType.long})),v=>Math.round(v)+' bpm'),'avg bpm per week, left→right = '+rangeLbl);
+
+ h+=groupHeader('Duration');
+ h+=sec('Easy run duration trend',lineChart(ws.map(x=>({l:x.w,v:x.durationByType.easy})),v=>fmtDur(v)),'time on feet per week, left→right = '+rangeLbl);
+ h+=sec('Speed session duration trend',lineChart(ws.map(x=>({l:x.w,v:x.durationByType.speed})),v=>fmtDur(v)),'time on feet per week, left→right = '+rangeLbl);
+ h+=sec('Long run duration trend',lineChart(ws.map(x=>({l:x.w,v:x.durationByType.long})),v=>fmtDur(v)),'time on feet per week, left→right = '+rangeLbl);
+
+ h+=groupHeader('Strength');
  h+=sec('Strength volume per week',lineChart(ws.map(x=>({l:x.w,v:x.sets})),v=>Math.round(v)+' sets'),'sets per week, left→right = '+rangeLbl);
  h+=sec('Strength by muscle group',hbar(muscleRows(a.muscles),' ex'),'exercises logged');
+
+ h+=groupHeader('Speed sessions');
  h+=sec('Speed sessions by level',hbar([
   {l:'Steady',v:a.hardness.easy},
   {l:'Standard',v:a.hardness.medium},
   {l:'Peak',v:a.hardness.hard}],' wks'),'weeks at each level');
+
+ h+=groupHeader('Elevation');
  h+=sec('Elevation',bigRow([
   big('Total gain',a.elevGain?Math.round(a.elevGain):'—','m climbed'),
   big('Total loss',a.elevLoss?Math.round(a.elevLoss):'—','m descended')
  ])+lineChart(ws.map(x=>({l:x.w,v:x.elevGain})),v=>Math.round(v)+' m'),'gain per week, left→right = '+rangeLbl);
- if(ws.some(x=>x.avgHR))h+=sec('Heart rate trend',lineChart(ws.map(x=>({l:x.w,v:x.avgHR})),v=>Math.round(v)+' bpm'),'avg bpm per week across all session types, left→right = '+rangeLbl);
- h+=sec('Easy run HR trend',lineChart(ws.map(x=>({l:x.w,v:x.hrAvgByType.easy})),v=>Math.round(v)+' bpm'),'avg bpm per week, left→right = '+rangeLbl);
- h+=sec('Speed session HR trend',lineChart(ws.map(x=>({l:x.w,v:x.hrAvgByType.speed})),v=>Math.round(v)+' bpm'),'avg bpm per week, left→right = '+rangeLbl);
- h+=sec('Long run HR trend',lineChart(ws.map(x=>({l:x.w,v:x.hrAvgByType.long})),v=>Math.round(v)+' bpm'),'avg bpm per week, left→right = '+rangeLbl);
- h+=sec('Easy run duration trend',lineChart(ws.map(x=>({l:x.w,v:x.durationByType.easy})),v=>fmtDur(v)),'time on feet per week, left→right = '+rangeLbl);
- h+=sec('Speed session duration trend',lineChart(ws.map(x=>({l:x.w,v:x.durationByType.speed})),v=>fmtDur(v)),'time on feet per week, left→right = '+rangeLbl);
- h+=sec('Long run duration trend',lineChart(ws.map(x=>({l:x.w,v:x.durationByType.long})),v=>fmtDur(v)),'time on feet per week, left→right = '+rangeLbl);
+
+ h+=groupHeader('Knee work');
  h+=sec('Knee work',bigRow([
   big('Circuits',a.circuits,'total'),
   big('Exercises',a.exs,'logged')
