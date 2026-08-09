@@ -2396,24 +2396,32 @@ function dateToSlot(date){
  if(week>state.total)return null;
  return {week:week,dayId:CORE[diff%7]};
 }
+/* longest / fastest / total distance — scanned across every day whose type is
+   an actual run (easy, speed, long, or one of the race distances), using
+   slotsOfType (not slotOf) so a week with two "easy" days, for example,
+   doesn't silently drop the second one. Only ticked days count. */
 function computePBs(){
  let longest=0,fastestEver=null,fastestEasy=null,totalKm=0;
+ const RUN_TYPES=['easy','speed','long','5k','10k','half','marathon'];
  for(let w=1;w<=state.total;w++){
   const d=state.weeks[w];if(!d)continue;
   const res=d.res||{},days=d.days||{};
-  const easyDay=slotOf(d,'easy'),speedDay=slotOf(d,'speed');
-  slotsOfType(d,'long').forEach(longDay=>{
-   if(!days[longDay]||!res[longDay])return;
-   const r=res[longDay],km=parseFloat(r.dist),t=parseHMS(r.time);
-   if(km>0){totalKm+=km;if(km>longest)longest=km;
-    if(t>0){const p=t/km;if(fastestEver===null||p<fastestEver)fastestEver=p;}}
+  RUN_TYPES.forEach(type=>{
+   slotsOfType(d,type).forEach(dayId=>{
+    if(!days[dayId])return;
+    const r=res[dayId];if(!r)return;
+    const km=parseFloat(r.dist),t=parseHMS(r.time);
+    if(km>0){
+     totalKm+=km;
+     if(km>longest)longest=km;
+     if(t>0){
+      const p=t/km;
+      if(fastestEver===null||p<fastestEver)fastestEver=p;
+      if(type==='easy'&&(fastestEasy===null||p<fastestEasy))fastestEasy=p;
+     }
+    }
+   });
   });
-  if(easyDay&&days[easyDay]&&res[easyDay]){const r=res[easyDay],km=parseFloat(r.dist),t=parseHMS(r.time);
-   if(km>0){totalKm+=km;if(t>0){const p=t/km;
-    if(fastestEasy===null||p<fastestEasy)fastestEasy=p;
-    if(fastestEver===null||p<fastestEver)fastestEver=p;}}}
-  if(speedDay&&days[speedDay]&&res[speedDay]){const r=res[speedDay],km=parseFloat(r.dist),t=parseHMS(r.time);
-   if(km>0){totalKm+=km;if(t>0){const p=t/km;if(fastestEver===null||p<fastestEver)fastestEver=p;}}}
  }
  return {longest:longest,fastestEver:fastestEver,fastestEasy:fastestEasy,totalKm:totalKm};
 }
@@ -2482,6 +2490,13 @@ function parseHMS(v){
  if(p.length===3)return p[0]*3600+p[1]*60+p[2];
  if(p.length===2)return p[0]*60+p[1];
  return p[0]*60;
+}
+/* shows a distance exactly as entered — 7.52 stays 7.52, 5 stays 5 — while
+   still killing floating-point noise from repeated addition (e.g. summing a
+   week of runs can land on 12.519999999999998 instead of 12.52) */
+function fmtKm(n){
+ if(n==null||isNaN(n))return '—';
+ return String(Math.round(n*1000)/1000);
 }
 function fmtDur(s){
  if(s==null)return '—';
@@ -2949,11 +2964,11 @@ function kneeIntensityRows(exCount){
 function panelWeek(){
  const w=state.week,a=agg(w,w);
  let h=bigRow([
-  big('Distance',a.km.toFixed(1),'km'),
+  big('Distance',fmtKm(a.km),'km'),
   big('Time',fmtDur(a.secs),'on feet'),
   big('Avg pace',a.pace?fmtPace(a.pace):'—','per km'),
   big('Sessions',a.sessions+'<span class="of">/7</span>','ticked'),
-  big('Longest',a.longest?a.longest.toFixed(1):'—','km'),
+  big('Longest',a.longest?fmtKm(a.longest):'—','km'),
   big('Fastest',a.fastest?fmtPace(a.fastest):'—','per km'),
   big('Elev gain',a.elevGain?Math.round(a.elevGain):'—','m'),
   big('Elev loss',a.elevLoss?Math.round(a.elevLoss):'—','m')
@@ -2966,9 +2981,9 @@ function panelWeek(){
   big('Marathon',a.raceCounts.marathon,'done')
  ]),'sessions logged at each distance, this week');
  h+=sec('Distance by session',hbar([
-  {l:'Easy',v:+a.kmType.easy.toFixed(1)},
-  {l:'Speed',v:+a.kmType.speed.toFixed(1)},
-  {l:'Long',v:+a.kmType.long.toFixed(1)}],' km'),'kilometres run');
+  {l:'Easy',v:+fmtKm(a.kmType.easy)},
+  {l:'Speed',v:+fmtKm(a.kmType.speed)},
+  {l:'Long',v:+fmtKm(a.kmType.long)}],' km'),'kilometres run');
  (function(){
   const hrByType=a.weeks[0].hrAvgByType;
   h+=sec('Heart rate',hbar([
@@ -2998,20 +3013,20 @@ function panelAll(from,to){
  const ws=a.weeks;
  const rangeLbl=(from===1&&to===w)?('week 1→'+w):('week '+from+'→'+to);
  let h=bigRow([
-  big('Distance',a.km.toFixed(1),'km total'),
+  big('Distance',fmtKm(a.km),'km total'),
   big('Time',fmtDur(a.secs),'on feet'),
   big('Avg pace',a.pace?fmtPace(a.pace):'—','per km'),
   big('Sessions',a.sessions,'of '+(7*(to-from+1))),
   big('Weeks done',a.full,'of '+(to-from+1)),
   big('Streak',streak(),'sessions')
  ]);
- h+=sec('Distance per week',lineChart(ws.map(x=>({l:x.w,v:x.km})),v=>v.toFixed(1)+' km'),'total km per week, left→right = '+rangeLbl);
+ h+=sec('Distance per week',lineChart(ws.map(x=>({l:x.w,v:x.km})),v=>fmtKm(v)+' km'),'total km per week, left→right = '+rangeLbl);
  h+=sec('Time on feet trend',lineChart(ws.map(x=>({l:x.w,v:x.secs})),v=>fmtDur(v)),'total time on feet per week, all activities, left→right = '+rangeLbl);
  h+=sec('Overall rating trend',lineChart(ws.map(x=>({l:x.w,v:x.rate.overall})),v=>v+'/5'),'overall rating per week, left→right = '+rangeLbl);
  h+=sec('Distance by session',hbar([
-  {l:'Easy',v:+a.kmType.easy.toFixed(1)},
-  {l:'Speed',v:+a.kmType.speed.toFixed(1)},
-  {l:'Long',v:+a.kmType.long.toFixed(1)}],' km'),'kilometres run');
+  {l:'Easy',v:+fmtKm(a.kmType.easy)},
+  {l:'Speed',v:+fmtKm(a.kmType.speed)},
+  {l:'Long',v:+fmtKm(a.kmType.long)}],' km'),'kilometres run');
  h+=sec('Sessions by type',hbar(typeCountRows(a.typeCounts),''),'days ticked, by type, across all weeks');
  h+=sec('Race distances',hbar([
   {l:'5K',v:a.raceCounts['5k']},
@@ -3061,7 +3076,7 @@ function panelCompare(){
  const wB=compareB||state.week;
  const a=agg(wA,wA),b=agg(wB,wB);
  const rows=[
-  ['Distance',a.km.toFixed(1)+' km',b.km.toFixed(1)+' km'],
+  ['Distance',fmtKm(a.km)+' km',fmtKm(b.km)+' km'],
   ['Time',fmtDur(a.secs),fmtDur(b.secs)],
   ['Avg pace',a.pace?fmtPace(a.pace)+'/km':'—',b.pace?fmtPace(b.pace)+'/km':'—'],
   ['Sessions',a.sessions+'/7',b.sessions+'/7'],
@@ -3152,7 +3167,7 @@ async function shareWeekImage(){
 
  cy=cy+94;
  const stats=[
-  ['DISTANCE',a.km.toFixed(1)+' km'],
+  ['DISTANCE',fmtKm(a.km)+' km'],
   ['TIME ON FEET',fmtDur(a.secs)],
   ['AVG PACE',a.pace?fmtPace(a.pace)+'/km':'—'],
   ['SESSIONS',a.sessions+' of 7'],
@@ -3189,7 +3204,7 @@ async function shareWeekImage(){
    ctx.fillStyle='#dcd9cf';ctx.fillRect(barX,cy,barMaxW,26);
    ctx.fillStyle=r.c;ctx.fillRect(barX,cy,Math.max(6,barMaxW*(r.v/maxV)),26);
    ctx.fillStyle='#15171a';ctx.font="20px 'DM Mono',monospace";
-   ctx.fillText(r.v.toFixed(1)+' km',barX+barMaxW+16,cy+20);
+   ctx.fillText(fmtKm(r.v)+' km',barX+barMaxW+16,cy+20);
    cy+=58;
   });
   cy+=32;
@@ -3588,7 +3603,7 @@ function renderWeek(){
   '</div>');
 
  const A1=agg(w,w);
- h+=acc('stats','Stats',A1.km?A1.km.toFixed(1)+' km this week':'no distance yet',renderStats());
+ h+=acc('stats','Stats',A1.km?fmtKm(A1.km)+' km this week':'no distance yet',renderStats());
  h+=acc('pbs','Personal Bests',(function(){const n=RACE_ORDER.filter(id=>computeRacePBs()[id].best).length;return n?n+' of 4 set':'none yet';})(),renderRacePBs());
  const app=document.getElementById('app');
  app.innerHTML=h;
@@ -3884,9 +3899,9 @@ function renderIdentity(){
  if(!el)return;
  const pb=computePBs();
  el.innerHTML=
-  '<div class="idchip"><span class="idk">Longest run</span><span class="idv">'+(pb.longest?pb.longest.toFixed(1)+' km':'—')+'</span></div>'+
+  '<div class="idchip"><span class="idk">Longest run</span><span class="idv">'+(pb.longest?fmtKm(pb.longest)+' km':'—')+'</span></div>'+
   '<div class="idchip"><span class="idk">Fastest pace</span><span class="idv">'+(pb.fastestEver?fmtPace(pb.fastestEver)+'/km':'—')+'</span></div>'+
-  '<div class="idchip"><span class="idk">Distance run</span><span class="idv">'+pb.totalKm.toFixed(0)+' km</span></div>';
+  '<div class="idchip"><span class="idk">Distance run</span><span class="idv">'+fmtKm(pb.totalKm)+' km</span></div>';
 }
 function renderAll(){
  renderTape();renderProgress();renderWeek();renderLibSection();renderHero();renderCounters();setQuote();
