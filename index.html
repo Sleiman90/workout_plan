@@ -105,9 +105,14 @@ body{background:var(--stock);color:var(--ink);font-family:'Archivo',system-ui,sa
 /* days */
 .days{border-top:1px solid var(--rule);}
 .day{border-bottom:1px solid var(--rule);padding:14px 0;}
-.day-main{display:flex;gap:13px;align-items:flex-start;}
-.day-tag{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.12em;color:var(--ink-faint);
-  text-transform:uppercase;padding-top:3px;flex:0 0 34px;}
+.day-head{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;padding-bottom:11px;
+  border-bottom:1px solid var(--rule);}
+.day-head-dow{font-family:'Anton',sans-serif;font-size:15.5px;letter-spacing:.015em;color:var(--track);
+  line-height:1;}
+.day-head-date{font-family:'DM Mono',monospace;font-size:12.5px;letter-spacing:.08em;
+  color:var(--ink-faint);text-transform:uppercase;}
+.day-head .todaydot{margin-left:auto;align-self:center;}
+.day-main{display:flex;gap:10px;align-items:flex-start;}
 .day-body{flex:1;min-width:0;}
 .day-title{font-weight:700;font-size:15.5px;letter-spacing:-.005em;}
 .day-title .kind{font-family:'DM Mono',monospace;font-weight:400;font-size:11px;color:var(--ink-faint);
@@ -237,7 +242,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 
 @media (min-width:640px){ .lib{grid-template-columns:1fr 1fr;} }
 @media (min-width:900px){ .lib{grid-template-columns:1fr 1fr 1fr;} }
-@media (max-width:480px){ .shell{padding:0 14px;} .day-tag{flex-basis:30px;font-size:10px;} .rate-l{flex-basis:78px;} }
+@media (max-width:480px){ .shell{padding:0 14px;} .day-head-dow{font-size:14px;} .day-head-date{font-size:11.5px;} .rate-l{flex-basis:78px;} }
 
 /* week controls */
 .wkctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 14px;}
@@ -1935,7 +1940,7 @@ let panels={days:true,rate:false,stats:false,lib:false,pbs:false};
 let customForm=null; // 'tempo:easy' | 'tempo:medium' | ... | null — which level's add/edit form is open
 let editingTierId=null; // id of the custom session being edited, or null when adding a new one
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-const NUMFIELDS=['dist','hr','elevGain','elevLoss'];
+const NUMFIELDS=['dist','hr','elevGain'];
 const TIMEFIELDS=['time','pace'];
 function isNumericField(key){
  if(NUMFIELDS.indexOf(key)>=0)return true;
@@ -2668,8 +2673,14 @@ function raceCountsOf(w){
 function weekAgg(w){
  const d=state.weeks[w]||{};
  const res=d.res||{},days=d.days||{},knee=d.knee||{};
+ const order=d.order||DEFAULT_ORDER;
  const rate=autoRate(w).v;
- let km=0,secs=0,runs=0,longest=0,fastest=null,elevGain=0,elevLoss=0,hrSum=0,hrN=0;
+ /* "active" days are every non-rest day this week — used for a consistency
+    rate that can't be inflated by just ticking Rest days, since those never
+    count toward it either way */
+ const activeDays=CORE.filter((k,i)=>order[i]!=='rest').length;
+ const activeDone=CORE.filter((k,i)=>order[i]!=='rest'&&days[k]).length;
+ let km=0,secs=0,runs=0,longest=0,fastest=null,elevGain=0,hrSum=0,hrN=0;
  let paceKm=0,paceSecs=0;
  const kmType={easy:0,speed:0,long:0};
  const hrByType={easy:{sum:0,n:0},speed:{sum:0,n:0},long:{sum:0,n:0}};
@@ -2700,9 +2711,8 @@ function weekAgg(w){
    }
    secs+=t;
    if(!skipBreakdown){paceSecs+=t;secsByType[type]+=t;}
-   const eg=parseFloat(r.elevGain),el=parseFloat(r.elevLoss);
+   const eg=parseFloat(r.elevGain);
    if(!isNaN(eg)&&eg>0)elevGain+=eg;
-   if(!isNaN(el)&&el>0)elevLoss+=el;
    const hr=parseFloat(r.hr);
    if(!isNaN(hr)&&hr>0){
     hrSum+=hr;hrN++;
@@ -2748,27 +2758,29 @@ function weekAgg(w){
  const hardness=(speedDay&&days[speedDay]&&(wedTypeOf(d,speedDay,w)!=='easy'))?hardnessOf(d,speedDay):null;
  return {w:w,km:km,secs:secs,runs:runs,kmType:kmType,kmByType:kmByType,longest:longest,fastest:fastest,
   paceKm:paceKm,paceSecs:paceSecs,pace:pace,paceByType:paceByType,durationByType:durationByType,
-  elevGain:elevGain,elevLoss:elevLoss,avgHR:avgHR,hrAvgByType:hrAvgByType,typeCounts:typeCounts,
+  elevGain:elevGain,avgHR:avgHR,hrSum:hrSum,hrN:hrN,hrAvgByType:hrAvgByType,typeCounts:typeCounts,
   raceCounts:raceCountsOf(w),
   sets:sets,muscles:muscles,exCount:exCount,groupCount:groupCount,exs:exs,circuits:circuits,
   warm:warm,cool:cool,sessions:CORE.filter(k=>days[k]).length,hardness:hardness,
+  activeDays:activeDays,activeDone:activeDone,
   strSess:gymDays.filter(k=>days[k]).length,kneeDay:kneeDay,days:days,rate:rate,full:weekDone(w)};
 }
 function agg(from,to){
  const o={km:0,secs:0,runs:0,longest:0,fastest:null,sets:0,exs:0,circuits:0,warm:0,cool:0,
   sessions:0,strSess:0,full:0,kmType:{easy:0,speed:0,long:0},muscles:{},exCount:{},groupCount:{},
   hardness:{easy:0,medium:0,hard:0},rate:{},rateN:{},weeks:[],paceKm:0,paceSecs:0,
-  elevGain:0,elevLoss:0,typeCounts:{easy:0,speed:0,long:0,strength:0,rest:0},
-  raceCounts:{'5k':0,'10k':0,half:0,marathon:0}};
+  elevGain:0,typeCounts:{easy:0,speed:0,long:0,strength:0,rest:0},
+  raceCounts:{'5k':0,'10k':0,half:0,marathon:0},hrSum:0,hrN:0,activeDays:0,activeDone:0};
  for(let w=from;w<=to;w++){
   const a=weekAgg(w);o.weeks.push(a);
   o.km+=a.km;o.secs+=a.secs;o.runs+=a.runs;o.sets+=a.sets;o.exs+=a.exs;o.circuits+=a.circuits;
   o.warm+=a.warm;o.cool+=a.cool;o.sessions+=a.sessions;o.strSess+=a.strSess;if(a.full)o.full++;
-  o.paceKm+=a.paceKm;o.paceSecs+=a.paceSecs;
+  o.paceKm+=a.paceKm;o.paceSecs+=a.paceSecs;o.hrSum+=a.hrSum;o.hrN+=a.hrN;
+  o.activeDays+=a.activeDays;o.activeDone+=a.activeDone;
   if(a.longest>o.longest)o.longest=a.longest;
   if(a.fastest!==null&&(o.fastest===null||a.fastest<o.fastest))o.fastest=a.fastest;
   if(a.hardness)o.hardness[a.hardness]++;
-  o.elevGain+=a.elevGain;o.elevLoss+=a.elevLoss;
+  o.elevGain+=a.elevGain;
   Object.keys(a.typeCounts).forEach(k=>o.typeCounts[k]+=a.typeCounts[k]);
   Object.keys(a.raceCounts).forEach(k=>o.raceCounts[k]+=a.raceCounts[k]);
   ['easy','speed','long'].forEach(k=>o.kmType[k]+=a.kmType[k]);
@@ -2778,6 +2790,7 @@ function agg(from,to){
   Object.keys(a.rate).forEach(k=>{if(a.rate[k]){o.rate[k]=(o.rate[k]||0)+a.rate[k];o.rateN[k]=(o.rateN[k]||0)+1;}});
  }
  o.pace=o.paceKm?o.paceSecs/o.paceKm:null;
+ o.avgHR=o.hrN?o.hrSum/o.hrN:null;
  return o;
 }
 function typeCountRows(counts){
@@ -2812,8 +2825,8 @@ function vbar(series,unit,color){
   '<span class="vb-l">'+s.l+'</span><span class="vb-n">'+(s.d!=null?s.d:(s.v?s.v.toFixed(0):''))+(unit||'')+'</span></div>'
  ).join('')+'</div>';
 }
-function lineChart(series,fmt,invert){
- const vals=series.filter(s=>s.v!=null&&s.v>0);
+function lineChart(series,fmt,invert,allowZero){
+ const vals=series.filter(s=>s.v!=null&&(allowZero||s.v>0));
  if(vals.length<2)return nodata('Two weeks of data needed for a trend.');
  const nums=vals.map(s=>s.v);
  const min=Math.min.apply(null,nums),max=Math.max.apply(null,nums);
@@ -2823,7 +2836,7 @@ function lineChart(series,fmt,invert){
  const VW=620,VH=210,padL=92,padR=14,padT=14,padB=14;
  const plotW=VW-padL-padR,plotH=VH-padT-padB;
  const xy=[];
- series.forEach((s,i)=>{if(s.v==null||s.v<=0)return;
+ series.forEach((s,i)=>{if(s.v==null||(!allowZero&&s.v<=0))return;
   const x=padL+(i/((n-1)||1))*plotW;
   const y=padT+(1-(s.v-niceMin)/niceRng)*plotH;
   xy.push([x,y,s.l,s.v]);
@@ -2965,10 +2978,11 @@ function panelWeek(){
   big('Distance',fmtKm(a.km),'km'),
   big('Time',fmtDur(a.secs),'on feet'),
   big('Avg pace',a.pace?fmtPace(a.pace):'—','per km'),
+  big('Rest days',a.typeCounts.rest,'this week'),
+  big('Avg HR',a.avgHR?Math.round(a.avgHR):'—','bpm'),
   big('Sessions',a.sessions+'<span class="of">/7</span>','ticked'),
   big('Longest',a.longest?fmtKm(a.longest):'—','km'),
-  big('Elev gain',a.elevGain?Math.round(a.elevGain):'—','m'),
-  big('Elev loss',a.elevLoss?Math.round(a.elevLoss):'—','m')
+  big('Elevation',a.elevGain?Math.round(a.elevGain):'—','m')
  ]);
  h+=sec('Sessions by type',hbar(typeCountRows(a.typeCounts),''),'days ticked, by type');
  h+=sec('Race distances',bigRow([
@@ -3009,11 +3023,13 @@ function panelAll(from,to){
  const a=agg(from,to);
  const ws=a.weeks;
  const rangeLbl=(from===1&&to===w)?('week 1→'+w):('week '+from+'→'+to);
+ const possible=7*(to-from+1);
  let h=bigRow([
   big('Distance',fmtKm(a.km),'km total'),
   big('Time',fmtDur(a.secs),'on feet'),
   big('Avg pace',a.pace?fmtPace(a.pace):'—','per km'),
-  big('Sessions',a.sessions,'of '+(7*(to-from+1))),
+  big('Avg HR',a.avgHR?Math.round(a.avgHR):'—','bpm'),
+  big('Sessions',a.sessions,'of '+possible),
   big('Weeks done',a.full,'of '+(to-from+1))
  ]);
 
@@ -3021,6 +3037,7 @@ function panelAll(from,to){
  h+=sec('Distance per week',lineChart(ws.map(x=>({l:x.w,v:x.km})),v=>fmtKm(v)+' km'),'total km per week, left→right = '+rangeLbl);
  h+=sec('Time on feet trend',lineChart(ws.map(x=>({l:x.w,v:x.secs})),v=>fmtDur(v)),'total time on feet per week, all activities, left→right = '+rangeLbl);
  h+=sec('Overall rating trend',lineChart(ws.map(x=>({l:x.w,v:x.rate.overall})),v=>v+'/5'),'overall rating per week, left→right = '+rangeLbl);
+ h+=sec('Rest days trend',lineChart(ws.map(x=>({l:x.w,v:x.typeCounts.rest})),v=>Math.round(v)+(v===1?' day':' days'),false,true),'rest days per week, left→right = '+rangeLbl);
  h+=sec('Sessions by type',hbar(typeCountRows(a.typeCounts),''),'days ticked, by type, across all weeks');
  h+=sec('Race distances',hbar([
   {l:'5K',v:a.raceCounts['5k']},
@@ -3067,9 +3084,8 @@ function panelAll(from,to){
 
  h+=groupHeader('Elevation');
  h+=sec('Elevation',bigRow([
-  big('Total gain',a.elevGain?Math.round(a.elevGain):'—','m climbed'),
-  big('Total loss',a.elevLoss?Math.round(a.elevLoss):'—','m descended')
- ])+lineChart(ws.map(x=>({l:x.w,v:x.elevGain})),v=>Math.round(v)+' m'),'gain per week, left→right = '+rangeLbl);
+  big('Total',a.elevGain?Math.round(a.elevGain):'—','m')
+ ])+lineChart(ws.map(x=>({l:x.w,v:x.elevGain})),v=>Math.round(v)+' m'),'elevation per week, left→right = '+rangeLbl);
 
  h+=groupHeader('Knee work');
  h+=sec('Knee work',bigRow([
@@ -3463,7 +3479,7 @@ function daySpec(d,w,type,dayId){
     '<span class="c"><span class="k">Duration</span><span class="v">1:00–2:30</span><span class="n">h:mm</span></span>'+
     '<span class="c"><span class="k">Distance</span><span class="v">10–25</span><span class="n">km</span></span>'+
     '<span class="c"><span class="k">Pace</span><span class="v">5:50–6:10</span><span class="n">/km</span></span></div>',
-   res:{f:[['time','Time','text','58:20'],['dist','Distance km','text','10.1'],['pace','Avg pace','text','5:58'],['hr','Avg HR'],['elevGain','Elevation gain m','text','120'],['elevLoss','Elevation loss m','text','120']]}};
+   res:{f:[['time','Time','text','58:20'],['dist','Distance km','text','10.1'],['pace','Avg pace','text','5:58'],['hr','Avg HR'],['elevGain','Elevation m','text','120']]}};
  }
  if(RACE_DIST[type]){
   const rd=RACE_DIST[type];
@@ -3492,9 +3508,14 @@ function renderWeek(){
   const isKnee=KNEE_TYPES.indexOf(type)>=0;
   const opened=!!d.open[day.id];
   const isToday=(w===weekOfToday())&&(day.id===todayId());
-  daysHtml+='<div class="day'+(day.rest?' rest':'')+(day.race?' race':'')+(isKnee?' knee':'')+(isToday?' today':'')+'"><div class="day-main">'+
+  const slotDate=dateForSlot(w,day.id);
+  const dowFull=slotDate.toLocaleDateString('en-GB',{weekday:'long'}).toUpperCase();
+  const dateFull=slotDate.toLocaleDateString('en-GB',{day:'numeric',month:'long'}).toUpperCase();
+  daysHtml+='<div class="day'+(day.rest?' rest':'')+(day.race?' race':'')+(isKnee?' knee':'')+(isToday?' today':'')+'">'+
+   '<div class="day-head"><span class="day-head-dow">'+dowFull+'</span><span class="day-head-date">'+dateFull+'</span>'+(isToday?'<span class="todaydot"></span>':'')+'</div>'+
+   '<div class="day-main">'+
    '<input type="checkbox" class="tickbox" data-day="'+day.id+'"'+(on?' checked':'')+' aria-label="'+day.t+' done">'+
-   '<div class="day-tag">'+day.tag+(isToday?'<span class="todaydot"></span>':'')+'</div><div class="day-body">'+
+   '<div class="day-body">'+
    '<div class="day-title">'+day.t+'<span class="kind">'+day.k+'</span></div>'+
    orderSelect(d,w,day.id,type)+
    '<div class="day-detail">'+day.det+'</div>'+
