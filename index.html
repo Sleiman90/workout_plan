@@ -2830,8 +2830,29 @@ function lineChart(series,fmt,invert,allowZero){
  if(vals.length<2)return nodata('Two weeks of data needed for a trend.');
  const nums=vals.map(s=>s.v);
  const min=Math.min.apply(null,nums),max=Math.max.apply(null,nums);
- const span=(max-min)||Math.max(1,Math.abs(min)*0.1,1);
- const niceMin=min-span*0.12,niceMax=max+span*0.12,niceRng=(niceMax-niceMin)||1;
+ /* pick a "nice" gridline step (1/2/5/10 × a power of ten) based on the
+    actual data range, instead of always slicing into 4 equal fractional
+    parts — a small integer range like 1-2 rest days would otherwise
+    produce ticks like 1.1/1.4/1.7/2.0, which all round to the same
+    "1 day"/"2 days" label and look duplicated */
+ const rawSpan=(max-min)||Math.max(1,Math.abs(max)*0.15,1);
+ const roughStep=rawSpan/4;
+ const mag=Math.pow(10,Math.floor(Math.log10(roughStep)));
+ const norm=roughStep/mag;
+ let step=(norm<1.5?1:norm<3?2:norm<7?5:10)*mag;
+ /* for a series that's always a whole count (rest days, sessions, etc.),
+    a fractional step like 0.2 is technically "nice" but still rounds
+    several ticks to the same integer label — force whole-number steps
+    whenever every value in the series already is one */
+ const isIntData=nums.every(v=>Number.isInteger(v));
+ if(isIntData&&step<1)step=1;
+ let niceMin=Math.floor(min/step)*step,niceMax=Math.ceil(max/step)*step;
+ if(niceMin===niceMax)niceMax=niceMin+step;
+ if(min-niceMin<step*0.3)niceMin-=step;
+ if(niceMax-max<step*0.3)niceMax+=step;
+ if(allowZero&&min>=0&&niceMin<0)niceMin=0;
+ const niceRng=(niceMax-niceMin)||1;
+ const ticksCount=Math.max(1,Math.round((niceMax-niceMin)/step));
  const n=series.length;
  const VW=620,VH=210,padL=92,padR=14,padT=14,padB=14;
  const plotW=VW-padL-padR,plotH=VH-padT-padB;
@@ -2850,11 +2871,10 @@ function lineChart(series,fmt,invert,allowZero){
    '<circle cx="'+cx+'" cy="'+cy+'" r="14" fill="transparent"/>'+
    '<circle class="trend-dot" cx="'+cx+'" cy="'+cy+'" r="4.2" fill="var(--track)"/></g>';
  }).join('');
- const TICKS=4;
  let grid='',labels='';
- for(let i=0;i<=TICKS;i++){
-  const val=niceMin+(niceRng*i/TICKS);
-  const ty=padT+(1-(i/TICKS))*plotH;
+ for(let i=0;i<=ticksCount;i++){
+  const val=niceMin+step*i;
+  const ty=padT+(1-(i/ticksCount))*plotH;
   grid+='<line x1="'+padL+'" y1="'+ty.toFixed(1)+'" x2="'+(VW-padR)+'" y2="'+ty.toFixed(1)+'" stroke="var(--rule)" stroke-width="1"/>';
   labels+='<text x="'+(padL-10)+'" y="'+(ty+5).toFixed(1)+'" text-anchor="end" font-size="16" fill="var(--ink-faint)" font-family="DM Mono, monospace">'+fmt(val)+'</text>';
  }
@@ -3036,7 +3056,7 @@ function panelAll(from,to){
  h+=groupHeader('Overview');
  h+=sec('Distance per week',lineChart(ws.map(x=>({l:x.w,v:x.km})),v=>fmtKm(v)+' km'),'total km per week, left→right = '+rangeLbl);
  h+=sec('Time on feet trend',lineChart(ws.map(x=>({l:x.w,v:x.secs})),v=>fmtDur(v)),'total time on feet per week, all activities, left→right = '+rangeLbl);
- h+=sec('Overall rating trend',lineChart(ws.map(x=>({l:x.w,v:x.rate.overall})),v=>v+'/5'),'overall rating per week, left→right = '+rangeLbl);
+ h+=sec('Overall rating trend',lineChart(ws.map(x=>({l:x.w,v:x.rate.overall})),v=>v.toFixed(1)),'out of 5 · overall rating per week, left→right = '+rangeLbl);
  h+=sec('Rest days trend',lineChart(ws.map(x=>({l:x.w,v:x.typeCounts.rest})),v=>Math.round(v)+(v===1?' day':' days'),false,true),'rest days per week, left→right = '+rangeLbl);
  h+=sec('Sessions by type',hbar(typeCountRows(a.typeCounts),''),'days ticked, by type, across all weeks');
  h+=sec('Race distances',hbar([
