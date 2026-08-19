@@ -282,6 +282,20 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
   color:var(--track);margin-bottom:9px;}
 .knee-h b{font-weight:500;color:var(--ink);}
 .knee-add{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;align-items:center;}
+.supgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px;}
+.supcell{background:var(--card);border:1px solid var(--rule);border-radius:3px;padding:9px 10px;
+  transition:border-color .15s;}
+.supcell.on{border-color:var(--track);}
+.supcell label{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-faint);margin-bottom:5px;}
+.supcell input{width:100%;background:var(--stock);border:1px solid var(--rule);border-radius:2px;
+  padding:7px 8px;font-family:'IBM Plex Mono',monospace;font-size:15px;color:var(--ink);
+  -moz-appearance:textfield;}
+.supcell input::-webkit-outer-spin-button,.supcell input::-webkit-inner-spin-button{
+  -webkit-appearance:none;margin:0;}
+.supcell input:focus{outline:2px solid var(--track);outline-offset:-1px;}
+.supcell.on input{color:var(--track);}
+.sup-note{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink-faint);margin:9px 0 0;}
 .knee-add select{background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:6px 8px;
   font-family:'Inter',sans-serif;font-size:12.5px;color:var(--ink);max-width:100%;flex:1 1 190px;}
 .knee-add select:focus{outline:2px solid var(--track);outline-offset:-1px;}
@@ -830,18 +844,6 @@ html[data-theme="dark"] .pick-btn{
     <span class="databar-status" id="dataStatus"></span>
   </div>
 
-</div>
-<div class="modal" id="picker" hidden role="dialog" aria-modal="true" aria-labelledby="pkTitle">
-  <div class="modal-in">
-    <div class="modal-top"><h3 id="pkTitle">Choose exercises</h3>
-      <button class="x" id="pkClose" aria-label="Close">Close</button></div>
-    <div class="modal-body">
-      <div class="libbar" id="pkbar"></div>
-      <div class="pkgrid" id="pkgrid"></div>
-    </div>
-    <div class="modal-foot"><span class="cnt" id="pkCount">0 selected</span>
-      <button class="done" id="pkDone">Done</button></div>
-  </div>
 </div>
 <script>
 /* Falls back to localStorage when Claude's window.storage isn't present —
@@ -2382,9 +2384,25 @@ function satModeOf(d,dayId){return (d.satMode&&d.satMode[dayId])||'long';}
 function weekDone(w){const d=(state.weeks[w]&&state.weeks[w].days)||{};return CORE.every(k=>d[k]);}
 function exOf(d,day){
  if(!d.knee)d.knee={};
- if(!d.knee[day])d.knee[day]={done:[],other:''};
- if(!d.knee[day].done)d.knee[day].done=[];
- return d.knee[day];
+ if(!d.knee[day])d.knee[day]={counts:{}};
+ const K=d.knee[day];
+ /* migrate the old shape, which stored a list of picked exercise ids plus a
+    "not listed" number, into the three per-area counts. Without this, anything
+    logged before the switch would silently read as zero. */
+ if(!K.counts){
+  K.counts={};
+  if(Array.isArray(K.done)&&K.done.length){
+   K.done.forEach(id=>{
+    const e=exFind(id);if(!e)return;
+    const area=(e.g==='knee'||e.g==='hip'||e.g==='ankle')?e.g:'knee';
+    K.counts[area]=(parseInt(K.counts[area],10)||0)+1;
+   });
+  }
+  const other=parseInt(K.other,10)||0;
+  if(other>0)K.counts.knee=(parseInt(K.counts.knee,10)||0)+other;
+  delete K.done;delete K.other;
+ }
+ return K;
 }
 function exFind(id){return KNEE.find(k=>k.id===id);}
 function satMode(w,dayId){
@@ -2793,16 +2811,19 @@ function weekAgg(w){
   sets+=parseFloat(r.sets)||0;
   Object.keys(MUSC).forEach(f=>{const n=parseFloat(r[f]);if(!isNaN(n)&&n>0)muscles[f]=(muscles[f]||0)+n;});
  });
- const exCount={},groupCount={},kneeDay={};
- let exs=0,circuits=0,warm=0,cool=0;
+ /* support work is now three counts per day, knee / hip / ankle, rather than
+    a list of named exercises. supCount holds the per-area totals for the week. */
+ const supCount={knee:0,hip:0,ankle:0},kneeDay={};
+ let exs=0,circuits=0;
  Object.keys(knee).forEach(day=>{
   if(!days[day])return;
-  const K=knee[day]||{},done=K.done||[],other=parseInt(K.other,10)||0;
+  const c=exOf(d,day).counts||{};
   let n=0;
-  done.forEach(id=>{const e=exFind(id);if(!e)return;
-   exCount[id]=(exCount[id]||0)+1;groupCount[e.g]=(groupCount[e.g]||0)+1;
-   if(e.g==='warm')warm++;else if(e.g==='cool')cool++;else n++;});
-  n+=other;exs+=n;
+  Object.keys(supCount).forEach(area=>{
+   const v=parseInt(c[area],10)||0;
+   if(v>0){supCount[area]+=v;n+=v;}
+  });
+  exs+=n;
   if(n>0){circuits++;kneeDay[day]=true;}
  });
  const speedDay=slotOf(d,'speed');
@@ -2811,21 +2832,21 @@ function weekAgg(w){
   paceKm:paceKm,paceSecs:paceSecs,pace:pace,paceByType:paceByType,durationByType:durationByType,
   elevGain:elevGain,avgHR:avgHR,hrSum:hrSum,hrN:hrN,hrAvgByType:hrAvgByType,typeCounts:typeCounts,
   raceCounts:raceCountsOf(w),
-  sets:sets,muscles:muscles,exCount:exCount,groupCount:groupCount,exs:exs,circuits:circuits,
-  warm:warm,cool:cool,sessions:CORE.filter(k=>days[k]).length,hardness:hardness,
+  sets:sets,muscles:muscles,supCount:supCount,exs:exs,circuits:circuits,
+  sessions:CORE.filter(k=>days[k]).length,hardness:hardness,
   activeDays:activeDays,activeDone:activeDone,
   strSess:gymDays.filter(k=>days[k]).length,kneeDay:kneeDay,days:days,rate:rate,full:weekDone(w)};
 }
 function agg(from,to){
- const o={km:0,secs:0,runs:0,longest:0,fastest:null,sets:0,exs:0,circuits:0,warm:0,cool:0,
-  sessions:0,strSess:0,full:0,kmType:{easy:0,speed:0,long:0},muscles:{},exCount:{},groupCount:{},
+ const o={km:0,secs:0,runs:0,longest:0,fastest:null,sets:0,exs:0,circuits:0,
+  sessions:0,strSess:0,full:0,kmType:{easy:0,speed:0,long:0},muscles:{},supCount:{knee:0,hip:0,ankle:0},
   hardness:{easy:0,medium:0,hard:0},rate:{},rateN:{},weeks:[],paceKm:0,paceSecs:0,
   elevGain:0,typeCounts:{easy:0,speed:0,long:0,strength:0,rest:0},
   raceCounts:{'5k':0,'10k':0,half:0,marathon:0},hrSum:0,hrN:0,activeDays:0,activeDone:0};
  for(let w=from;w<=to;w++){
   const a=weekAgg(w);o.weeks.push(a);
   o.km+=a.km;o.secs+=a.secs;o.runs+=a.runs;o.sets+=a.sets;o.exs+=a.exs;o.circuits+=a.circuits;
-  o.warm+=a.warm;o.cool+=a.cool;o.sessions+=a.sessions;o.strSess+=a.strSess;if(a.full)o.full++;
+  o.sessions+=a.sessions;o.strSess+=a.strSess;if(a.full)o.full++;
   o.paceKm+=a.paceKm;o.paceSecs+=a.paceSecs;o.hrSum+=a.hrSum;o.hrN+=a.hrN;
   o.activeDays+=a.activeDays;o.activeDone+=a.activeDone;
   if(a.longest>o.longest)o.longest=a.longest;
@@ -2836,8 +2857,7 @@ function agg(from,to){
   Object.keys(a.raceCounts).forEach(k=>o.raceCounts[k]+=a.raceCounts[k]);
   ['easy','speed','long'].forEach(k=>o.kmType[k]+=a.kmType[k]);
   Object.keys(a.muscles).forEach(k=>o.muscles[k]=(o.muscles[k]||0)+a.muscles[k]);
-  Object.keys(a.exCount).forEach(k=>o.exCount[k]=(o.exCount[k]||0)+a.exCount[k]);
-  Object.keys(a.groupCount).forEach(k=>o.groupCount[k]=(o.groupCount[k]||0)+a.groupCount[k]);
+  Object.keys(a.supCount).forEach(k=>o.supCount[k]=(o.supCount[k]||0)+a.supCount[k]);
   Object.keys(a.rate).forEach(k=>{if(a.rate[k]){o.rate[k]=(o.rate[k]||0)+a.rate[k];o.rateN[k]=(o.rateN[k]||0)+1;}});
  }
  o.pace=o.paceKm?o.paceSecs/o.paceKm:null;
@@ -3027,22 +3047,6 @@ function rateColor(v){return v>0?'var(--r'+Math.max(1,Math.min(5,Math.round(v)))
 function sec(t,body,metric){return '<div class="sblock"><h5>'+t+(metric?'<span class="metric">'+metric+'</span>':'')+'</h5>'+body+'</div>';}
 function groupHeader(label){return '<div class="stat-group-h">'+label+'</div>';}
 function muscleRows(m){return Object.keys(MUSC).map(k=>({l:MUSC[k],v:m[k]||0})).filter(r=>r.v>0);}
-function topRows(c,lim,only){
- return Object.keys(c).map(id=>{const e=exFind(id);
-   if(only&&(!e||!only.some(function(g){return inG(e,g);})))return null;
-   return {l:e?e.name:id,v:c[id]};}).filter(Boolean)
-  .sort((a,b)=>b.v-a.v).slice(0,lim||5);
-}
-function kneeIntensityRows(exCount){
- const b={1:0,2:0,3:0};
- Object.keys(exCount).forEach(id=>{
-  const e=exFind(id);if(!e||!inG(e,'knee'))return;
-  const L=loadOf(id)[0];if(L>0)b[L]+=exCount[id];
- });
- return [{l:'Low load',v:b[1]},
-         {l:'Moderate',v:b[2]},
-         {l:'High load',v:b[3]}];
-}
 function panelWeek(){
  const w=state.week,a=agg(w,w);
  let h=bigRow([
@@ -3078,12 +3082,14 @@ function panelWeek(){
   big('Gym days',a.strSess,'done'),
   big('Sets',a.sets||0,'total')
  ])+hbar(muscleRows(a.muscles),' ex'),'exercises per muscle group');
- h+=sec('Knee work',bigRow([
-  big('Circuits',a.circuits,'days with knee work'),
-  big('Exercises',a.exs,'logged')
- ])+'<div class="two"><div><p class="sub">Most used, times logged</p>'+hbar(topRows(a.exCount,5,MAIN),' ×')+
-  '</div><div><p class="sub">By knee load, times logged</p>'+hbar(kneeIntensityRows(a.exCount),' ×')+'</div></div>',
-  'knee exercises only');
+ h+=sec('Support work',bigRow([
+  big('Days',a.circuits,'with support work'),
+  big('Exercises',a.exs,'total')
+ ])+hbar([
+  {l:'Knee',v:a.supCount.knee},
+  {l:'Hip',v:a.supCount.hip},
+  {l:'Ankle',v:a.supCount.ankle}
+ ],' ex'),'exercises by area, this week');
  h+=sec('Ratings',radar(a.rate,a.rateN),'score out of 5');
  h+='<button class="pick-btn wide" id="shareWeekBtn" style="margin-top:16px">Share this week</button>';
  return h;
@@ -3158,15 +3164,20 @@ function panelAll(from,to){
   big('Total',a.elevGain?Math.round(a.elevGain):'—','m')
  ])+lineChart(ws.map(x=>({l:x.w,v:x.elevGain})),v=>Math.round(v)+' m'),'elevation per week, left→right = '+rangeLbl);
 
- h+=groupHeader('Knee work');
- h+=sec('Knee work',bigRow([
-  big('Circuits',a.circuits,'total'),
-  big('Exercises',a.exs,'logged')
- ])+'<div class="two"><div><p class="sub">Most used, times logged</p>'+hbar(topRows(a.exCount,5,MAIN),' ×')+
-  '</div><div><p class="sub">By knee load, times logged</p>'+hbar(kneeIntensityRows(a.exCount),' ×')+'</div></div>',
-  'knee exercises only');
+ h+=groupHeader('Support work');
+ h+=sec('Support work',bigRow([
+  big('Days',a.circuits,'with support work'),
+  big('Exercises',a.exs,'total')
+ ])+hbar([
+  {l:'Knee',v:a.supCount.knee},
+  {l:'Hip',v:a.supCount.hip},
+  {l:'Ankle',v:a.supCount.ankle}
+ ],' ex'),'exercises by area, '+rangeLbl);
+ h+=sec('Knee exercises per week',lineChart(ws.map(x=>({l:x.w,v:x.supCount.knee})),v=>Math.round(v)+' ex',false,true),'left→right = '+rangeLbl);
+ h+=sec('Hip exercises per week',lineChart(ws.map(x=>({l:x.w,v:x.supCount.hip})),v=>Math.round(v)+' ex',false,true),'left→right = '+rangeLbl);
+ h+=sec('Ankle exercises per week',lineChart(ws.map(x=>({l:x.w,v:x.supCount.ankle})),v=>Math.round(v)+' ex',false,true),'left→right = '+rangeLbl);
  h+='<div class="two"><div>'+sec('Sessions','<p class="legend"><span class="lg s"></span>ticked <span class="lg"></span>missed · rows = weeks, columns = Mon–Sun</p>'+heat('sessions'))+'</div>'+
-   '<div>'+sec('Knee work','<p class="legend"><span class="lg k"></span>logged <span class="lg"></span>none · rows = weeks, columns = Mon–Sun</p>'+heat('knee'))+'</div></div>';
+   '<div>'+sec('Support work','<p class="legend"><span class="lg k"></span>logged <span class="lg"></span>none · rows = weeks, columns = Mon–Sun</p>'+heat('knee'))+'</div></div>';
  h+=sec('Ratings',radar(a.rate,a.rateN),'score out of 5');
  return h;
 }
@@ -3411,55 +3422,6 @@ async function importData(file){
 }
 
 /* ═══ picker modal ═══ */
-function openPicker(mode,day){
- pkMode=mode;pkDay=day||null;pkFilter='all';
- document.getElementById('pkTitle').textContent=mode==='circuit'?'Build your circuit':'What did you do, '+DAYLBL[day]+'?';
- document.getElementById('picker').hidden=false;
- document.body.style.overflow='hidden';
- renderPicker();
-}
-function closePicker(){
- document.getElementById('picker').hidden=true;
- document.body.style.overflow='';
- pkMode=null;pkDay=null;renderAll();
-}
-function pkSelected(){
- return exOf(wk(state.week),pkDay).done;
-}
-function renderPicker(){
- const bar=document.getElementById('pkbar');
- bar.innerHTML=GROUPS.map(g=>'<button data-pg="'+g.k+'" class="'+(pkFilter===g.k?'on':'')+'">'+g.l+'</button>').join('');
- bar.querySelectorAll('[data-pg]').forEach(b=>b.onclick=()=>{pkFilter=b.dataset.pg;renderPicker();});
- const sel=pkSelected();
- const items=sortForFilter(KNEE.filter(k=>pkFilter==='all'||inG(k,pkFilter)),pkFilter);
- const grid=document.getElementById('pkgrid');
- grid.innerHTML=items.map(k=>{
-  const on=sel.indexOf(k.id)>=0;
-  const fav=isFav(k.id);
-  return '<button class="pk'+(on?' on':'')+'" data-pk="'+k.id+'" aria-pressed="'+on+'">'+
-   '<span class="pk-star'+(fav?' on':'')+'" data-pkstar="'+k.id+'" role="button" aria-label="Favourite this exercise">'+(fav?'★':'☆')+'</span>'+
-   '<span class="pk-anim"><svg class="ex-svg" viewBox="0 0 140 100">'+k.svg+'</svg></span>'+
-   '<span class="pk-n">'+k.name+'</span>'+
-   '<span class="pk-dose">'+k.dose+'</span>'+
-   '<span class="pk-g">'+groupLabel(k)+'</span>'+loadBar(k.id)+'</button>';
- }).join('');
- grid.querySelectorAll('[data-pk]').forEach(b=>b.onclick=()=>{
-  const id=b.dataset.pk,list=pkSelected(),i=list.indexOf(id);
-  if(i>=0)list.splice(i,1);else list.push(id);
-  save();
-  renderPicker();
- });
- grid.querySelectorAll('[data-pkstar]').forEach(s=>s.onclick=async(e)=>{
-  e.stopPropagation();
-  toggleFav(s.dataset.pkstar);
-  await saveSet();
-  renderPicker();
- });
- document.getElementById('pkCount').textContent=sel.length+' selected';
- if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-  grid.querySelectorAll('svg').forEach(s=>{try{s.pauseAnimations();}catch(e){}});
-}
-
 /* ═══ day rendering ═══ */
 function pips(val){
  let h='<div class="pips">';
@@ -3495,25 +3457,26 @@ function gymFieldRow(day,defs,res,disabled){
  });
  return h+'</div>';
 }
+/* Support work is logged as three simple counts, knee / hip / ankle. The old
+   flow made you pick each exercise by name from the animation library, which
+   was more bookkeeping than the data was worth, the stats only ever cared how
+   much of each you did. The library is still there to browse for ideas. */
+const SUPPORT_AREAS=[['knee','Knee'],['hip','Hip'],['ankle','Ankle']];
 function exPanel(d,day,isKneeDay){
  const K=exOf(d,day);
- let n=parseInt(K.other,10)||0;
- K.done.forEach(id=>{const e=exFind(id);if(e&&SUPPORT.indexOf(e.g)>=0)n++;});
- const GRP_ORDER={knee:0,hip:1};
- const chosen=K.done.map(id=>exFind(id)).filter(Boolean)
-  .map((e,i)=>({e:e,i:i}))
-  .sort((a,b)=>((GRP_ORDER[a.e.g]!=null?GRP_ORDER[a.e.g]:2)-(GRP_ORDER[b.e.g]!=null?GRP_ORDER[b.e.g]:2))||(a.i-b.i))
-  .map(x=>x.e);
+ const counts=K.counts||{};
+ const total=SUPPORT_AREAS.reduce((a,x)=>a+(parseInt(counts[x[0]],10)||0),0);
  let h='<div class="ex-panel'+(isKneeDay?'':' opt')+'"><div class="ex-h"><span>'+
-  (isKneeDay?'Knee circuit':'Extra work')+'</span><span><b>'+n+'</b> logged</span></div>';
- h+=chosen.length
-  ? '<ul class="ex-list">'+chosen.map(e=>'<li class="'+(e.g==='hip'?'hip':(e.g==='knee'?'':'other'))+'">'+
-      '<b>'+esc(e.name)+'</b></li>').join('')+'</ul>'
-  : '<p class="chips-empty">Nothing picked yet.</p>';
- h+='<div class="knee-add"><button class="pick-btn" data-pick="'+day+'">Choose from the animations</button>'+
-  '<span class="knee-other"><label for="ko-'+day+'">Not listed</label>'+
-  '<input id="ko-'+day+'" type="number" min="0" inputmode="numeric" data-kother="'+day+'" value="'+
-  (K.other||'')+'" placeholder="0"></span></div></div>';
+  (isKneeDay?'Support work':'Extra work')+'</span><span><b>'+total+'</b> logged</span></div>';
+ h+='<div class="supgrid">'+SUPPORT_AREAS.map(a=>{
+  const key=a[0],on=(parseInt(counts[key],10)||0)>0;
+  return '<div class="supcell'+(on?' on':'')+'">'+
+   '<label for="sup-'+day+'-'+key+'">'+a[1]+'</label>'+
+   '<input id="sup-'+day+'-'+key+'" type="number" min="0" inputmode="numeric" '+
+   'data-supcount="'+day+'|'+key+'" value="'+esc(counts[key]==null?'':counts[key])+'">'+
+   '</div>';
+ }).join('')+'</div>';
+ h+='<p class="sup-note">How many exercises you did for each area.</p></div>';
  return h;
 }
 function daySpec(d,w,type,dayId){
@@ -3738,10 +3701,10 @@ function bindWeek(app,d){
  app.querySelectorAll('.tickbox').forEach(cb=>cb.onchange=e=>{
   d.days[e.target.dataset.day]=e.target.checked;save();renderTape();renderProgress();renderWeek();});
   app.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{d.open[b.dataset.open]=true;save();renderWeek();});
- app.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>openPicker('day',b.dataset.pick));
- app.querySelectorAll('[data-kother]').forEach(i=>{
+ app.querySelectorAll('[data-supcount]').forEach(i=>{
   i.oninput=e=>{
-   exOf(d,e.target.dataset.kother).other=e.target.value;
+   const [dayId,area]=e.target.dataset.supcount.split('|');
+   exOf(d,dayId).counts[area]=e.target.value;
    clearTimeout(saveTimer);saveTimer=setTimeout(save,800);
   };
   i.onblur=()=>{clearTimeout(saveTimer);save();renderWeek();};
@@ -4052,10 +4015,6 @@ function renderAll(){
   cform.hidden=true;ctb.hidden=false;
   save();renderCounters();
  };
- document.getElementById('pkClose').onclick=closePicker;
- document.getElementById('pkDone').onclick=closePicker;
- document.getElementById('picker').addEventListener('click',e=>{if(e.target.id==='picker')closePicker();});
- document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('picker').hidden)closePicker();});
  document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='hidden'){clearTimeout(saveTimer);save();saveSet();}
  });
