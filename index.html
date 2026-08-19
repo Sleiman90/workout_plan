@@ -699,6 +699,8 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 .addvariant{width:100%;background:none;border:1px dashed var(--rule);border-radius:2px;padding:9px;
   font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.07em;color:var(--ink-faint);cursor:pointer;}
 .addvariant:hover{border-color:var(--lane);color:var(--lane);}
+.tier-editnote{font-family:'IBM Plex Mono',monospace;font-size:10.5px;line-height:1.5;
+  color:var(--ink-faint);margin:0 0 9px;}
 .tier-add{background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:11px;
   display:flex;flex-direction:column;gap:7px;}
 .tier-add input,.tier-add textarea{background:var(--stock);border:1px solid var(--rule);border-radius:2px;
@@ -2074,7 +2076,7 @@ let state={
   res:{sat:{time:'22:40',dist:'5.00',pace:'4:33',hr:'176'}},
   rate:{},route:{},knee:{},open:{},skip:{}
  }}
-}, settings={favorites:{knee:[],hip:[],ankle:[],core:[],run:[],warm:[],cool:[]},customTiers:{tempo:[],interval:[]},theme:'light'};
+}, settings={favorites:{knee:[],hip:[],ankle:[],core:[],run:[],warm:[],cool:[]},customTiers:{tempo:[],interval:[]},tierEdits:{},theme:'light'};
 let saveTimer=null, libFilter='knee', pkFilter='all', pkMode=null, pkDay=null, statTab='week';
 let statRangeFrom=null, statRangeTo=null;
 let compareA=null, compareB=null;
@@ -2100,6 +2102,10 @@ let customForm=null; // 'tempo:easy' | 'tempo:medium' | ... | null, which level'
 let openTier=null;
 let editingTierId=null; // id of the custom session being edited, or null when adding a new one
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+/* built-in session structures carry a little markup for emphasis. When one is
+   opened for editing it has to go into a plain textarea, so strip the tags
+   rather than showing raw HTML to the user. */
+function stripTags(s){return String(s==null?'':s).replace(/<[^>]*>/g,'');}
 const NUMFIELDS=['dist','hr','elevGain'];
 const TIMEFIELDS=['time','pace'];
 function isNumericField(key){
@@ -2444,6 +2450,7 @@ async function load(){
  try{const raw=await getVal(SET);if(raw){const p=JSON.parse(raw);
   if(p.favorites)settings.favorites=Object.assign({knee:[],hip:[],ankle:[],core:[],run:[],warm:[],cool:[]},p.favorites);
   if(p.customTiers)settings.customTiers=p.customTiers;
+  if(p.tierEdits)settings.tierEdits=p.tierEdits;
   if(p.theme)settings.theme=p.theme;
   if(p.panels)panels=Object.assign(panels,p.panels);}}catch(e){}
 }
@@ -3715,35 +3722,51 @@ function renderWeek(){
    daysHtml+='<div class="tiers">';
    tiers.forEach(base=>{
     const customs=(settings.customTiers[wmode]||[]).filter(c=>c.lvl===base.id||(!c.lvl&&base.id==='medium'));
-    const variants=[base].concat(customs);
+    /* a built-in session can be edited too. The edit is stored as an override
+       keyed by mode+level in settings, so it applies to every week rather than
+       only the day it was changed on, and the original can be restored. */
+    const ovKey=wmode+':'+base.id;
+    const ov=(settings.tierEdits||{})[ovKey];
+    const shown=ov?Object.assign({},base,{n:ov.n||base.n,d:ov.d||base.d,s:ov.s,e:ov.e||''}):base;
+    const variants=[shown].concat(customs);
     const open=openTier===(dayId+'|'+base.id);
     daysHtml+='<div class="lvlgroup'+(open?' on':'')+'">';
     daysHtml+='<button class="lvlhead '+base.c+'" data-lvlgroup="'+dayId+'|'+base.id+'" aria-expanded="'+open+'">'+
-     '<span class="tier-name"><span class="tier-dot"></span>'+base.n+
+     '<span class="tier-name"><span class="tier-dot"></span>'+esc(shown.n)+
      (variants.length>1?'<span class="tier-mine">'+variants.length+'</span>':'')+'</span></button>';
     if(open){
      daysHtml+='<div class="lvlbody">';
      variants.forEach(v=>{const s=dTier===v.id,mine=v.id!==base.id;
+      const tag=mine?'<span class="tier-mine">yours</span>':(ov?'<span class="tier-mine">edited</span>':'');
       daysHtml+='<button class="variant'+(s?' on':'')+'" data-tier="'+dayId+'|'+v.id+'" aria-pressed="'+s+'">'+
-       (variants.length>1?'<div class="variant-name">'+(mine?esc(v.n)+' <span class="tier-mine">yours</span>':'Original')+'</div>':'')+
-       '<div class="tier-struct">'+(mine?esc(v.s):v.s)+'</div>'+
-       (v.e?'<div class="tier-ext">'+v.e+'</div>':'')+
+       (variants.length>1||(!mine&&ov)?'<div class="variant-name">'+(mine?esc(v.n):'Original')+' '+tag+'</div>':'')+
+       '<div class="tier-struct">'+((mine||ov)?esc(v.s):v.s)+'</div>'+
+       (v.e?'<div class="tier-ext">'+((mine||ov)?esc(v.e):v.e)+'</div>':'')+
        '<span class="tier-pick'+(s?' on':'')+'">'+(s?'Selected':'Use this')+'</span>'+
-       (mine?'<span class="variant-actions">'+
-         '<span class="tier-edit" data-tieredit="'+dayId+'|'+wmode+'|'+v.id+'" role="button" aria-label="Edit this session">edit</span>'+
-         '<span class="tier-del" data-tierdel="'+dayId+'|'+wmode+'|'+v.id+'" role="button" aria-label="Remove this session">remove</span>'+
-        '</span>':'')+
+       (mine
+        ?'<span class="variant-actions">'+
+          '<span class="tier-edit" data-tieredit="'+dayId+'|'+wmode+'|'+v.id+'" role="button" aria-label="Edit this session">edit</span>'+
+          '<span class="tier-del" data-tierdel="'+dayId+'|'+wmode+'|'+v.id+'" role="button" aria-label="Remove this session">remove</span>'+
+         '</span>'
+        :'<span class="variant-actions">'+
+          '<span class="tier-edit" data-baseedit="'+dayId+'|'+wmode+'|'+base.id+'" role="button" aria-label="Edit this session">edit</span>'+
+          (ov?'<span class="tier-del" data-basereset="'+dayId+'|'+wmode+'|'+base.id+'" role="button" aria-label="Restore the original">reset</span>':'')+
+         '</span>')+
        '</button>';
      });
      const editingHere=editingTierId&&(settings.customTiers[wmode]||[]).some(c=>c.id===editingTierId&&c.lvl===base.id);
      const editVals=editingHere?(settings.customTiers[wmode]||[]).find(c=>c.id===editingTierId):null;
+     const editingBase=editingTierId===('base:'+ovKey);
+     const baseVals=editingBase?shown:null;
+     const formVals=editVals||baseVals;
      daysHtml+=customForm===(dayId+'|'+wmode+':'+base.id)
-      ? '<div class="tier-add"><input type="text" id="ctName" placeholder="Name, e.g. Fartlek" maxlength="60" value="'+(editVals?esc(editVals.n):'')+'">'+
-        '<input type="text" id="ctDur" placeholder="Duration, e.g. 35 min" maxlength="20" value="'+(editVals?esc(editVals.d):'')+'">'+
-        '<textarea id="ctStruct" placeholder="Structure, warm-up, main set, cool-down…" maxlength="400">'+(editVals?esc(editVals.s):'')+'</textarea>'+
-        '<div class="tier-add-row"><button class="pick-btn" data-ctsave="'+dayId+'|'+wmode+'|'+base.id+'">'+(editVals?'Update session':'Save session')+'</button>'+
+      ? '<div class="tier-add">'+(editingBase?'<p class="tier-editnote">Editing the built-in '+esc(base.n)+' session. This applies to every week, and you can reset it later.</p>':'')+
+        '<input type="text" id="ctName" placeholder="Name, e.g. Fartlek" maxlength="60" value="'+(formVals?esc(formVals.n):'')+'">'+
+        '<input type="text" id="ctDur" placeholder="Duration, e.g. 35 min" maxlength="20" value="'+(formVals?esc(formVals.d||''):'')+'">'+
+        '<textarea id="ctStruct" placeholder="Structure, warm-up, main set, cool-down…" maxlength="400">'+(formVals?esc(stripTags(formVals.s)):'')+'</textarea>'+
+        '<div class="tier-add-row"><button class="pick-btn" data-'+(editingBase?'basesave':'ctsave')+'="'+dayId+'|'+wmode+'|'+base.id+'">'+(formVals?'Update session':'Save session')+'</button>'+
         '<button class="tier-add-cancel" data-ctcancel="1">Cancel</button></div></div>'
-      : '<button class="addvariant" data-ctopen="'+dayId+'|'+wmode+':'+base.id+'">+ Add another '+base.n.toLowerCase()+' session</button>';
+      : '<button class="addvariant" data-ctopen="'+dayId+'|'+wmode+':'+base.id+'">+ Add another '+esc(shown.n).toLowerCase()+' session</button>';
      daysHtml+='</div>';
     }
     daysHtml+='</div>';
@@ -3931,6 +3954,34 @@ function bindWeek(app,d){
   if(!entry)return;
   editingTierId=id;
   customForm=dayId+'|'+wmodeKey+':'+entry.lvl;
+  renderWeek();
+ });
+ app.querySelectorAll('[data-baseedit]').forEach(b=>b.onclick=(e)=>{
+  e.stopPropagation();
+  const [dayId,wmodeKey,lvl]=b.dataset.baseedit.split('|');
+  editingTierId='base:'+wmodeKey+':'+lvl;
+  customForm=dayId+'|'+wmodeKey+':'+lvl;
+  renderWeek();
+ });
+ app.querySelectorAll('[data-basesave]').forEach(b=>b.onclick=async()=>{
+  const [dayId,wmodeKey,lvl]=b.dataset.basesave.split('|');
+  const name=(document.getElementById('ctName').value||'').trim();
+  const dur=(document.getElementById('ctDur').value||'').trim();
+  const struct=(document.getElementById('ctStruct').value||'').trim();
+  if(!name||!struct){alert('Give it at least a name and a structure.');return;}
+  if(!settings.tierEdits)settings.tierEdits={};
+  settings.tierEdits[wmodeKey+':'+lvl]={n:name,d:dur,s:struct};
+  await saveSet();
+  editingTierId=null;customForm=null;
+  renderWeek();
+ });
+ app.querySelectorAll('[data-basereset]').forEach(b=>b.onclick=async(e)=>{
+  e.stopPropagation();
+  const [dayId,wmodeKey,lvl]=b.dataset.basereset.split('|');
+  if(!confirm('Restore the original session? Your edit will be discarded.'))return;
+  if(settings.tierEdits)delete settings.tierEdits[wmodeKey+':'+lvl];
+  if(editingTierId==='base:'+wmodeKey+':'+lvl){editingTierId=null;customForm=null;}
+  await saveSet();
   renderWeek();
  });
  app.querySelectorAll('[data-ctsave]').forEach(b=>b.onclick=async()=>{
