@@ -219,7 +219,11 @@ textarea::placeholder{color:var(--ink-faint);}
 .band-col .n{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin-top:4px;}
 
 /* exercise library */
-.libbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+/* sticks to the top while scrolling a long group, so switching category
+   doesn't mean scrolling all the way back up first */
+.libbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;
+  position:sticky;top:0;z-index:20;background:var(--card);
+  padding:10px 0;margin-top:-10px;border-bottom:1px solid var(--rule);}
 .libbar button{background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:7px 11px;
   font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
   color:var(--ink-soft);cursor:pointer;}
@@ -282,7 +286,8 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
   color:var(--track);margin-bottom:9px;}
 .knee-h b{font-weight:500;color:var(--ink);}
 .knee-add{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;align-items:center;}
-.supgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px;}
+.supgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:4px;}
+@media (max-width:380px){.supgrid{grid-template-columns:repeat(2,1fr);}}
 .supcell{background:var(--card);border:1px solid var(--rule);border-radius:3px;padding:9px 10px;
   transition:border-color .15s;}
 .supcell.on{border-color:var(--track);}
@@ -296,6 +301,17 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 .supcell input:focus{outline:2px solid var(--track);outline-offset:-1px;}
 .supcell.on input{color:var(--track);}
 .sup-note{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink-faint);margin:9px 0 0;}
+
+/* back to top, appears once you've scrolled past roughly one screen */
+#toTop{position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:60;
+  display:flex;align-items:center;gap:7px;background:var(--track);color:#fff;border:none;
+  border-radius:999px;padding:11px 16px;cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  box-shadow:0 4px 14px rgba(0,0,0,.3);opacity:0;transform:translateY(8px);
+  transition:opacity .2s ease,transform .2s ease;pointer-events:none;}
+#toTop.show{opacity:1;transform:translateY(0);pointer-events:auto;}
+#toTop:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
+@media (max-width:480px){#toTop{right:12px;padding:10px 14px;font-size:10px;}}
 .knee-add select{background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:6px 8px;
   font-family:'Inter',sans-serif;font-size:12.5px;color:var(--ink);max-width:100%;flex:1 1 190px;}
 .knee-add select:focus{outline:2px solid var(--track);outline-offset:-1px;}
@@ -430,10 +446,14 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 .st .v .of{font-size:14px;color:var(--ink-faint);}
 .st .u{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--ink-faint);margin-top:3px;}
 .nodata{font-size:12.5px;color:var(--ink-faint);font-style:italic;}
-.hbars{display:flex;flex-direction:column;gap:4px;}
-.hb{display:flex;align-items:center;gap:8px;}
+/* charts were running edge to edge against the panel border, which read as
+   cramped, especially the bar tracks. One inset on the panel fixes every
+   chart inside it at once. */
+.spanel{padding:0 4px;}
+.hbars{display:flex;flex-direction:column;gap:6px;}
+.hb{display:flex;align-items:center;gap:11px;}
 .hb-l{font-size:12px;color:var(--ink-soft);flex:0 0 92px;text-align:right;}
-.hb-t{flex:1;height:15px;background:var(--sunk);border-radius:1px;overflow:hidden;}
+.hb-t{flex:1;height:16px;background:var(--sunk);border-radius:2px;overflow:hidden;}
 .hb-f{display:block;height:100%;}
 .hb-v{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink);flex:0 0 46px;}
 .vbars{display:flex;gap:1px;align-items:flex-end;padding-bottom:2px;}
@@ -489,7 +509,10 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
   text-transform:none;color:var(--ink-faint);margin-left:8px;}
 
 /* accordion */
-.acc{border:1px solid var(--rule);border-radius:3px;background:var(--card);margin-bottom:10px;overflow:hidden;}
+/* overflow:hidden only while collapsed, it keeps the rounded corners tidy but
+   would otherwise disable position:sticky for anything inside an open panel */
+.acc{border:1px solid var(--rule);border-radius:3px;background:var(--card);margin-bottom:10px;}
+.acc:not(.on){overflow:hidden;}
 .acc-h{width:100%;display:flex;justify-content:space-between;align-items:center;gap:12px;
   background:none;border:none;padding:14px 15px;cursor:pointer;text-align:left;}
 .acc-h:hover{background:rgba(21,23,26,.03);}
@@ -841,10 +864,12 @@ html[data-theme="dark"] .pick-btn{
     <button id="exportBtn">Export data</button>
     <label class="import-lbl">Import data<input type="file" id="importInput" accept="application/json"></label>
     <button id="themeBtn">Dark mode</button>
+    <button id="shareWeekBtn">Share this week</button>
     <span class="databar-status" id="dataStatus"></span>
   </div>
 
 </div>
+<button id="toTop" aria-label="Back to section top" hidden>&#8593;<span>Section</span></button>
 <script>
 /* Falls back to localStorage when Claude's window.storage isn't present —
    lets this exact file run standalone as an installed app. */
@@ -1794,7 +1819,85 @@ const KNEE=[
 {id:'bandhipadduct',g:'hip',name:'Standing band adduction',tgt:'Adductors, isolated',dose:'3 \u00d7 15 / side',
  cue:'Band anchored to one side at ankle height, stand with the anchor to your side, sweep the far leg across the front of the body against the band, return slowly.',
  why:'Almost everything else here trains the outside of the hip \u2014 this is the one direct, loaded exercise for the inside of it, and it matters for change-of-direction control as much as straight-line running.',
- svg:'<path class=\"env\" d=\"M118 24V90\"/><circle class=\"hd\" cx=\"56\" cy=\"22\" r=\"6.5\"/><path class=\"ln\" d=\"M56 29 56 52\"/><path class=\"ln\" d=\"M56 52 62 72 62 90\"/><path class=\"wk\" d=\"M56 52 44 72 42 90\">'+anim('M56 52 44 72 42 90;M56 52 76 70 90 78;M56 52 44 72 42 90','2.6s')+'</path><path class=\"bnd\" d=\"M90 78 118 60\">'+anim('M90 78 118 60;M42 90 118 60;M90 78 118 60','2.6s')+'</path>'}
+ svg:'<path class=\"env\" d=\"M118 24V90\"/><circle class=\"hd\" cx=\"56\" cy=\"22\" r=\"6.5\"/><path class=\"ln\" d=\"M56 29 56 52\"/><path class=\"ln\" d=\"M56 52 62 72 62 90\"/><path class=\"wk\" d=\"M56 52 44 72 42 90\">'+anim('M56 52 44 72 42 90;M56 52 76 70 90 78;M56 52 44 72 42 90','2.6s')+'</path><path class=\"bnd\" d=\"M90 78 118 60\">'+anim('M90 78 118 60;M42 90 118 60;M90 78 118 60','2.6s')+'</path>'},
+
+/* ── core / trunk ── */
+{id:'deadbugcore',g:'core',name:'Dead bug',tgt:'Deep core, anti-extension',dose:'3 × 8 / side',
+ cue:'Lower back pressed into the floor the whole time. Extend the opposite arm and leg slowly, stop the moment the back arches.',
+ why:'Teaches the trunk to stay stiff while the limbs move, which is exactly what running asks of it a few hundred times a minute.',
+ svg:FLOOR+'<circle class="hd" cx="30" cy="72" r="6"/><path class="ln" d="M36 76 74 82"/><path class="wk" d="M74 82 82 62 96 60">'+anim('M74 82 82 62 96 60;M74 82 96 72 114 78;M74 82 82 62 96 60;M74 82 82 62 96 60;M74 82 82 62 96 60','4s','0;0.25;0.5;0.75;1')+'</path><path class="wk" d="M40 80 44 62 34 52">'+anim('M40 80 44 62 34 52;M40 80 44 62 34 52;M40 80 44 62 34 52;M40 80 28 66 14 62;M40 80 44 62 34 52','4s','0;0.25;0.5;0.75;1')+'</path>'},
+{id:'hollowcore',g:'core',name:'Hollow hold',tgt:'Anterior core',dose:'3 × 30 s',
+ cue:'Low back glued down, shoulders and heels just off the floor. If the back lifts, bend the knees or raise the arms.',
+ why:'The strongest anti-extension hold there is. Builds the bracing that stops the pelvis tipping forward when you tire.',
+ svg:FLOOR+'<circle class="hd" cx="24" cy="66" r="6"/><path class="wk" d="M22 60 46 78 78 78 108 62">'+tremor('M22 60 46 78 78 78 108 62;M22 62 46 79 78 79 108 64;M22 60 46 78 78 78 108 62','2.6s')+'</path>'+HOLD},
+{id:'sideplankcore',g:'core',name:'Side plank',tgt:'Obliques, lateral chain',dose:'3 × 30 s / side',
+ cue:'Elbow under shoulder, hips stacked and lifted, body in one line. Do not let the top hip roll forward.',
+ why:'The lateral trunk keeps the pelvis level in single-leg stance. Weak here and the hip drops on every stride.',
+ svg:FLOOR+'<circle class="hd" cx="30" cy="52" r="6"/><path class="wk" d="M34 58 100 84">'+tremor('M34 58 100 84;M34 60 100 85;M34 58 100 84','2.6s')+'</path><path class="ln" d="M34 58 30 84"/>'+HOLD},
+{id:'sideplankraise',g:'core',name:'Side plank with hip raise',tgt:'Obliques, glute medius',dose:'3 × 10 / side',
+ cue:'From a side plank, lower the hip toward the floor and drive it back up. Slow down, quick up.',
+ why:'Adds movement to the lateral hold, which loads the obliques and glute medius together the way running does.',
+ svg:FLOOR+'<circle class="hd" cx="30" cy="52" r="6"/><path class="wk" d="M34 58 100 84">'+anim('M34 58 100 84;M34 70 100 86;M34 58 100 84','2.2s')+'</path><path class="ln" d="M34 58 30 84"/>'},
+{id:'birddog',g:'core',name:'Bird dog',tgt:'Trunk, spinal stabilisers',dose:'3 × 10 / side',
+ cue:'On all fours, reach the opposite arm and leg out long. Keep the hips square, no rotation, pause at the end.',
+ why:'Trains the trunk to resist rotation while the opposite limbs work, the exact coordination of a running stride.',
+ svg:FLOOR+'<circle class="hd" cx="34" cy="52" r="6"/><path class="ln" d="M40 56 84 60"/><path class="ln" d="M44 58 42 82"/><path class="ln" d="M82 60 86 82"/><path class="wk" d="M40 56 22 44">'+anim('M40 56 22 44;M40 56 16 40;M40 56 22 44','2.6s')+'</path><path class="wk" d="M84 60 104 48">'+anim('M84 60 104 48;M84 60 112 44;M84 60 104 48','2.6s')+'</path>'},
+{id:'plankreach',g:'core',name:'Plank shoulder tap',tgt:'Anti-rotation, trunk',dose:'3 × 12 / side',
+ cue:'From a plank, tap the opposite shoulder without letting the hips rock. Widen the feet if it is too hard.',
+ why:'Forces the trunk to resist rotation on one arm, which is closer to the demand of running than a static plank.',
+ svg:FLOOR+'<circle class="hd" cx="30" cy="62" r="6"/><path class="ln" d="M36 66 102 76"/><path class="ln" d="M102 76 114 88"/><path class="wk" d="M42 68 36 88">'+anim('M42 68 36 88;M42 68 30 62;M42 68 36 88','2.4s')+'</path>'},
+{id:'palloff',g:'core',name:'Pallof press',tgt:'Anti-rotation',dose:'3 × 10 / side',
+ cue:'Band anchored at chest height to your side. Press straight out and resist the pull that wants to twist you.',
+ why:'Direct anti-rotation loading. The trunk resists twist on every stride, and this trains it without spinal flexion.',
+ svg:FLOOR+'<circle class="hd" cx="56" cy="26" r="6.5"/><path class="ln" d="M56 33 56 60 52 90"/><path class="ln" d="M56 60 62 90"/><path class="wk" d="M56 44 78 44">'+anim('M56 44 78 44;M56 44 96 44;M56 44 78 44','2.4s')+'</path><path class="bnd" d="M78 44 118 44">'+anim('M78 44 118 44;M96 44 118 44;M78 44 118 44','2.4s')+'</path>'},
+{id:'deadbughold',g:'core',name:'Dead bug hold',tgt:'Deep core, isometric',dose:'3 × 20 s',
+ cue:'Arms and legs up, knees over hips, low back pressed flat. Breathe out slowly and keep the ribs down.',
+ why:'The entry point when full dead bugs let the back arch. Teaches the brace position before adding limb movement.',
+ svg:FLOOR+'<circle class="hd" cx="28" cy="72" r="6"/><path class="ln" d="M34 76 74 82"/><path class="wk" d="M74 82 78 60 92 58">'+tremor('M74 82 78 60 92 58;M74 82 78 62 92 60;M74 82 78 60 92 58','2.4s')+'</path><path class="wk" d="M42 80 46 60 36 50">'+tremor('M42 80 46 60 36 50;M42 80 46 62 36 52;M42 80 46 60 36 50','2.4s')+'</path>'+HOLD},
+{id:'reverseplank',g:'core',name:'Reverse plank',tgt:'Posterior chain, trunk',dose:'3 × 30 s',
+ cue:'Hands under shoulders, hips driven up to a straight line, chest open. Squeeze the glutes hard.',
+ why:'Balances all the front-side core work and loads the posterior trunk, which running tends to leave under-trained.',
+ svg:FLOOR+'<circle class="hd" cx="26" cy="50" r="6"/><path class="wk" d="M32 56 96 62">'+tremor('M32 56 96 62;M32 58 96 63;M32 56 96 62','2.6s')+'</path><path class="ln" d="M32 56 28 86"/><path class="ln" d="M96 62 108 86"/>'+HOLD},
+{id:'suitcasecore',g:'core',name:'Suitcase carry',tgt:'Obliques, anti-lateral flexion',dose:'3 × 30 m / side',
+ cue:'One heavy weight, one side. Walk tall and do not let it pull you sideways. Ribs stacked over the pelvis.',
+ why:'Loaded carries build the lateral trunk under real load, and the walking pattern makes it directly transferable.',
+ svg:FLOOR+'<circle class="hd" cx="66" cy="24" r="6.5"/><path class="ln" d="M66 31 66 58"/><path class="ln" d="M66 58 60 74 60 90">'+tremor('M66 58 60 74 60 90;M66 58 56 72 54 90;M66 58 64 72 66 90;M66 58 60 74 60 90','1.8s')+'</path><path class="ln" d="M66 58 72 74 72 90">'+tremor('M66 58 72 74 72 90;M66 58 76 72 78 90;M66 58 68 72 66 90;M66 58 72 74 72 90','1.8s')+'</path><path class="ln" d="M66 40 82 42 82 58"/><path class="wk" d="M76 58H90V74H76Z">'+tremor('M76 58H90V74H76Z;M76 60H90V76H76Z;M76 58H90V74H76Z','1.8s')+'</path>'},
+{id:'crunch',g:'core',name:'Crunch',tgt:'Rectus abdominis, upper',dose:'3 × 15',
+ cue:'Curl the ribs toward the pelvis, do not yank the neck. Small range, controlled, pause at the top.',
+ why:'Direct upper-abdominal work. Not running-specific on its own, but useful volume for the front of the trunk.',
+ svg:FLOOR+'<circle class="hd" cx="34" cy="66" r="6"><animate attributeName="cx" values="34;44;34" dur="2s" '+A+'/><animate attributeName="cy" values="66;58;66" dur="2s" '+A+'/></circle><path class="wk" d="M38 70 70 78">'+anim('M38 70 70 78;M48 62 70 78;M38 70 70 78','2s')+'</path><path class="ln" d="M70 78 84 62 100 78"/>'},
+{id:'bicycle',g:'core',name:'Bicycle crunch',tgt:'Obliques, rectus abdominis',dose:'3 × 20 total',
+ cue:'Opposite elbow toward opposite knee, other leg extended. Rotate from the ribs, not by pulling the head.',
+ why:'Combines flexion and rotation, hitting the obliques harder than a straight crunch.',
+ svg:FLOOR+'<circle class="hd" cx="34" cy="66" r="6"/><path class="wk" d="M38 70 68 78">'+anim('M38 70 68 78;M46 64 68 78;M38 70 68 78','1.8s')+'</path><path class="wk" d="M68 78 78 62 92 58">'+anim('M68 78 78 62 92 58;M68 78 88 74 104 78;M68 78 78 62 92 58','1.8s')+'</path><path class="ln" d="M68 78 86 76 102 80">'+anim('M68 78 86 76 102 80;M68 78 76 60 90 56;M68 78 86 76 102 80','1.8s')+'</path>'},
+{id:'legraise',g:'core',name:'Lying leg raise',tgt:'Lower abdominals, hip flexors',dose:'3 × 12',
+ cue:'Hands under the hips, legs straight, lower only as far as the back stays flat. Bend the knees to regress.',
+ why:'Loads the lower abdominals, the region that usually gives out first and lets the pelvis tip forward.',
+ svg:FLOOR+'<circle class="hd" cx="26" cy="76" r="6"/><path class="ln" d="M32 80 66 84"/><path class="wk" d="M66 84 106 84">'+anim('M66 84 106 84;M66 84 74 48;M66 84 106 84','2.4s')+'</path>'},
+{id:'hangingknee',g:'core',name:'Hanging knee raise',tgt:'Lower abdominals',dose:'3 × 10',
+ cue:'Hang from a bar, curl the knees up and tuck the pelvis at the top. Stop the swinging before each rep.',
+ why:'Harder lower-ab loading than a floor raise, and the hang decompresses the spine at the same time.',
+ svg:'<path class="env" d="M20 16H120"/><path class="ln" d="M62 16 62 34"/><circle class="hd" cx="62" cy="40" r="6.5"/><path class="ln" d="M62 47 62 66"/><path class="wk" d="M62 66 62 90 74 90">'+anim('M62 66 62 90 74 90;M62 66 76 74 90 66;M62 66 62 90 74 90','2.4s')+'</path>'},
+{id:'vup',g:'core',name:'V-up',tgt:'Full anterior core',dose:'3 × 10',
+ cue:'Arms and legs lift to meet over the hips, then lower under control. Bend the knees if the back rounds hard.',
+ why:'Trains upper and lower abs together in one movement. A good progression once hollow holds feel easy.',
+ svg:FLOOR+'<circle class="hd" cx="30" cy="70" r="6"><animate attributeName="cx" values="30;44;30" dur="2.4s" '+A+'/><animate attributeName="cy" values="70;56;70" dur="2.4s" '+A+'/></circle><path class="wk" d="M34 74 62 82">'+anim('M34 74 62 82;M48 60 62 82;M34 74 62 82','2.4s')+'</path><path class="wk" d="M62 82 102 84">'+anim('M62 82 102 84;M62 82 78 56;M62 82 102 84','2.4s')+'</path>'},
+{id:'russian',g:'core',name:'Russian twist',tgt:'Obliques, rotation',dose:'3 × 20 total',
+ cue:'Sit leaning back, chest tall, rotate the ribs side to side. Move slowly, the speed version is mostly momentum.',
+ why:'Loaded rotation for the obliques. Keep the spine long, this is a rib-cage rotation, not a spine wringing.',
+ svg:FLOOR+'<circle class="hd" cx="54" cy="34" r="6.5"/><path class="ln" d="M54 41 60 68"/><path class="ln" d="M60 68 36 80 60 86"/><path class="wk" d="M56 50 78 50">'+anim('M56 50 78 50;M56 50 74 34;M56 50 78 50;M56 50 74 66;M56 50 78 50','3.2s','0;0.25;0.5;0.75;1')+'</path>'},
+{id:'abwheel',g:'core',name:'Ab wheel rollout',tgt:'Anti-extension, full core',dose:'3 × 8',
+ cue:'From the knees, roll out only as far as the back stays flat, then pull back with the abs, not the arms.',
+ why:'The hardest anti-extension movement most people will do. Extremely strong carryover to holding form when tired.',
+ svg:FLOOR+'<circle class="hd" cx="40" cy="52" r="6"/><path class="wk" d="M44 58 70 68">'+anim('M44 58 70 68;M30 68 70 68;M44 58 70 68','2.8s')+'</path><path class="ln" d="M70 68 76 88"/><circle class="env" cx="44" cy="80" r="7" fill="none"><animate attributeName="cx" values="44;18;44" dur="2.8s" '+A+'/></circle>'},
+{id:'copenhagen',g:'core',name:'Copenhagen plank',tgt:'Adductors, obliques',dose:'3 × 20 s / side',
+ cue:'Top leg on a bench, bottom leg hanging or tucked. Lift the hips into a straight line and hold.',
+ why:'Loads the adductors and lateral trunk together, a combination that shows up in groin strains and pelvic drop.',
+ svg:'<path class="env" d="M78 66H126"/><circle class="hd" cx="26" cy="52" r="6"/><path class="wk" d="M30 58 92 62">'+tremor('M30 58 92 62;M30 60 92 63;M30 58 92 62','2.6s')+'</path><path class="ln" d="M30 58 26 82"/>'+HOLD},
+{id:'weightedplank',g:'core',name:'Weighted plank',tgt:'Anti-extension, loaded',dose:'3 × 30 s',
+ cue:'A plate on the upper back, same rules as a normal plank. Add load rather than adding minutes.',
+ why:'Once a plank passes about a minute, extra time stops building strength. Load is the more useful progression.',
+ svg:FLOOR+'<circle class="hd" cx="30" cy="62" r="6"/><path class="wk" d="M36 66 102 76">'+tremor('M36 66 102 76;M36 68 102 78;M36 66 102 76','2.2s')+'</path><path class="ln" d="M40 68 34 88"/><path class="ln" d="M102 76 114 88"/><path class="env" d="M58 60H82"/>'+HOLD},
 ];
 
 /* knee load and hip load, 0 none → 3 high */
@@ -1878,10 +1981,10 @@ function loadBar(id){
 }
 
 const GROUPS=[{k:'all',l:'Everything'},{k:'knee',l:'Knee'},{k:'hip',l:'Hip'},{k:'ankle',l:'Ankle & foot'},
- {k:'run',l:'Runner essentials'},{k:'warm',l:'Warm-up'},{k:'cool',l:'Cool-down'}];
-const ORD={knee:0,hip:1,ankle:2,run:3,warm:4,cool:5};
-const GLBL={knee:'Knee',hip:'Hip',ankle:'Ankle & foot',run:'Runner essentials',warm:'Warm-up',cool:'Cool-down'};
-const SUPPORT=['knee','hip','ankle','run'];
+ {k:'core',l:'Core'},{k:'run',l:'Runner essentials'},{k:'warm',l:'Warm-up'},{k:'cool',l:'Cool-down'}];
+const ORD={knee:0,hip:1,ankle:2,core:3,run:4,warm:5,cool:6};
+const GLBL={knee:'Knee',hip:'Hip',ankle:'Ankle & foot',core:'Core',run:'Runner essentials',warm:'Warm-up',cool:'Cool-down'};
+const SUPPORT=['knee','hip','ankle','core','run'];
 const MAIN=['knee'];
 
 const TEMPO=[
@@ -1963,11 +2066,25 @@ let state={
   res:{sat:{time:'22:40',dist:'5.00',pace:'4:33',hr:'176'}},
   rate:{},route:{},knee:{},open:{},skip:{}
  }}
-}, settings={favorites:{knee:[],hip:[],ankle:[],run:[],warm:[],cool:[]},customTiers:{tempo:[],interval:[]},theme:'light'};
-let saveTimer=null, libFilter='all', pkFilter='all', pkMode=null, pkDay=null, statTab='week';
+}, settings={favorites:{knee:[],hip:[],ankle:[],core:[],run:[],warm:[],cool:[]},customTiers:{tempo:[],interval:[]},theme:'light'};
+let saveTimer=null, libFilter='knee', pkFilter='all', pkMode=null, pkDay=null, statTab='week';
 let statRangeFrom=null, statRangeTo=null;
 let compareA=null, compareB=null;
 let panels={days:true,rate:false,stats:false,lib:false,pbs:false};
+/* only one section is open at a time. With every panel expandable at once the
+   page got long enough that returning to the top meant a lot of scrolling,
+   especially inside the exercise library. */
+function openPanel(key){
+ const wasOpen=!!panels[key];
+ Object.keys(panels).forEach(k=>panels[k]=false);
+ if(!wasOpen)panels[key]=true;
+ settings.panels=panels;saveSet();
+ renderWeek();renderLibSection();
+ requestAnimationFrame(()=>{
+  const el=document.querySelector('[data-acc="'+key+'"]');
+  if(el&&!wasOpen)el.scrollIntoView({block:'start',behavior:'smooth'});
+ });
+}
 let customForm=null; // 'tempo:easy' | 'tempo:medium' | ... | null, which level's add/edit form is open
 /* which tier accordion is expanded, purely a view state: expanding is not the
    same as choosing. Keyed 'dayId|tierId', null means all collapsed, which is
@@ -2317,7 +2434,7 @@ async function load(){
   }
  }}catch(e){}
  try{const raw=await getVal(SET);if(raw){const p=JSON.parse(raw);
-  if(p.favorites)settings.favorites=Object.assign({knee:[],hip:[],ankle:[],run:[],warm:[],cool:[]},p.favorites);
+  if(p.favorites)settings.favorites=Object.assign({knee:[],hip:[],ankle:[],core:[],run:[],warm:[],cool:[]},p.favorites);
   if(p.customTiers)settings.customTiers=p.customTiers;
   if(p.theme)settings.theme=p.theme;
   if(p.panels)panels=Object.assign(panels,p.panels);}}catch(e){}
@@ -2813,7 +2930,7 @@ function weekAgg(w){
  });
  /* support work is now three counts per day, knee / hip / ankle, rather than
     a list of named exercises. supCount holds the per-area totals for the week. */
- const supCount={knee:0,hip:0,ankle:0},kneeDay={};
+ const supCount={knee:0,hip:0,ankle:0,core:0},kneeDay={};
  let exs=0,circuits=0;
  Object.keys(knee).forEach(day=>{
   if(!days[day])return;
@@ -2839,7 +2956,7 @@ function weekAgg(w){
 }
 function agg(from,to){
  const o={km:0,secs:0,runs:0,longest:0,fastest:null,sets:0,exs:0,circuits:0,
-  sessions:0,strSess:0,full:0,kmType:{easy:0,speed:0,long:0},muscles:{},supCount:{knee:0,hip:0,ankle:0},
+  sessions:0,strSess:0,full:0,kmType:{easy:0,speed:0,long:0},muscles:{},supCount:{knee:0,hip:0,ankle:0,core:0},
   hardness:{easy:0,medium:0,hard:0},rate:{},rateN:{},weeks:[],paceKm:0,paceSecs:0,
   elevGain:0,typeCounts:{easy:0,speed:0,long:0,strength:0,rest:0},
   raceCounts:{'5k':0,'10k':0,half:0,marathon:0},hrSum:0,hrN:0,activeDays:0,activeDone:0};
@@ -3088,10 +3205,10 @@ function panelWeek(){
  ])+hbar([
   {l:'Knee',v:a.supCount.knee},
   {l:'Hip',v:a.supCount.hip},
-  {l:'Ankle',v:a.supCount.ankle}
+  {l:'Ankle',v:a.supCount.ankle},
+  {l:'Core',v:a.supCount.core}
  ],' ex'),'exercises by area, this week');
  h+=sec('Ratings',radar(a.rate,a.rateN),'score out of 5');
- h+='<button class="pick-btn wide" id="shareWeekBtn" style="margin-top:16px">Share this week</button>';
  return h;
 }
 function panelAll(from,to){
@@ -3171,11 +3288,13 @@ function panelAll(from,to){
  ])+hbar([
   {l:'Knee',v:a.supCount.knee},
   {l:'Hip',v:a.supCount.hip},
-  {l:'Ankle',v:a.supCount.ankle}
+  {l:'Ankle',v:a.supCount.ankle},
+  {l:'Core',v:a.supCount.core}
  ],' ex'),'exercises by area, '+rangeLbl);
  h+=sec('Knee exercises per week',lineChart(ws.map(x=>({l:x.w,v:x.supCount.knee})),v=>Math.round(v)+' ex',false,true),'left→right = '+rangeLbl);
  h+=sec('Hip exercises per week',lineChart(ws.map(x=>({l:x.w,v:x.supCount.hip})),v=>Math.round(v)+' ex',false,true),'left→right = '+rangeLbl);
  h+=sec('Ankle exercises per week',lineChart(ws.map(x=>({l:x.w,v:x.supCount.ankle})),v=>Math.round(v)+' ex',false,true),'left→right = '+rangeLbl);
+ h+=sec('Core exercises per week',lineChart(ws.map(x=>({l:x.w,v:x.supCount.core})),v=>Math.round(v)+' ex',false,true),'left→right = '+rangeLbl);
  h+='<div class="two"><div>'+sec('Sessions','<p class="legend"><span class="lg s"></span>ticked <span class="lg"></span>missed · rows = weeks, columns = Mon–Sun</p>'+heat('sessions'))+'</div>'+
    '<div>'+sec('Support work','<p class="legend"><span class="lg k"></span>logged <span class="lg"></span>none · rows = weeks, columns = Mon–Sun</p>'+heat('knee'))+'</div></div>';
  h+=sec('Ratings',radar(a.rate,a.rateN),'score out of 5');
@@ -3409,7 +3528,7 @@ async function importData(file){
   state = incoming;
   if (!state.total) state.total = 24;
   if (!state.week) state.week = 1;
-  if (payload.settings && payload.settings.favorites) settings.favorites = Object.assign({knee:[],hip:[],ankle:[],run:[],warm:[],cool:[]}, payload.settings.favorites);
+  if (payload.settings && payload.settings.favorites) settings.favorites = Object.assign({knee:[],hip:[],ankle:[],core:[],run:[],warm:[],cool:[]}, payload.settings.favorites);
   await save();
   await saveSet();
   renderAll();
@@ -3461,7 +3580,7 @@ function gymFieldRow(day,defs,res,disabled){
    flow made you pick each exercise by name from the animation library, which
    was more bookkeeping than the data was worth, the stats only ever cared how
    much of each you did. The library is still there to browse for ideas. */
-const SUPPORT_AREAS=[['knee','Knee'],['hip','Hip'],['ankle','Ankle']];
+const SUPPORT_AREAS=[['knee','Knee'],['hip','Hip'],['ankle','Ankle'],['core','Core']];
 function exPanel(d,day,isKneeDay){
  const K=exOf(d,day);
  const counts=K.counts||{};
@@ -3825,15 +3944,12 @@ function bindWeek(app,d){
   renderWeek();
  });
  app.querySelectorAll('[data-acc]').forEach(b=>b.onclick=()=>{
-  panels[b.dataset.acc]=!panels[b.dataset.acc];
-  settings.panels=panels;saveSet();renderWeek();renderLibSection();});
+  openPanel(b.dataset.acc);});
  app.querySelectorAll('[data-stab]').forEach(b=>b.onclick=()=>{statTab=b.dataset.stab;renderWeek();});
  const sf=app.querySelector('[data-statfrom]'),st=app.querySelector('[data-statto]'),sr=app.querySelector('[data-statreset]');
  if(sf)sf.onchange=e=>{statRangeFrom=+e.target.value;if(statRangeTo&&statRangeTo<statRangeFrom)statRangeTo=statRangeFrom;renderWeek();};
  if(st)st.onchange=e=>{statRangeTo=+e.target.value;if(statRangeFrom&&statRangeFrom>statRangeTo)statRangeFrom=statRangeTo;renderWeek();};
  if(sr)sr.onclick=()=>{statRangeFrom=null;statRangeTo=null;renderWeek();};
- const shareBtn=document.getElementById('shareWeekBtn');
- if(shareBtn)shareBtn.onclick=shareWeekImage;
  const cmpA=document.getElementById('cmpA'),cmpB=document.getElementById('cmpB');
  if(cmpA)cmpA.onchange=e=>{compareA=+e.target.value;renderWeek();};
  if(cmpB)cmpB.onchange=e=>{compareB=+e.target.value;renderWeek();};
@@ -3988,6 +4104,26 @@ function renderAll(){
  state.week=weekOfToday();
  applyTheme();
  initTrendTooltips();
+ const shareBtn=document.getElementById('shareWeekBtn');
+ if(shareBtn)shareBtn.onclick=shareWeekImage;
+ (function(){
+  const btn=document.getElementById('toTop');
+  if(!btn)return;
+  btn.hidden=false;
+  const onScroll=()=>{
+   btn.classList.toggle('show',window.scrollY>500);
+  };
+  window.addEventListener('scroll',onScroll,{passive:true});
+  onScroll();
+  /* jumps to the header of whichever section is open rather than the very top
+     of the page, so you land back on the thing you were reading */
+  btn.onclick=()=>{
+   const openKey=Object.keys(panels).find(k=>panels[k]);
+   const head=openKey?document.querySelector('[data-acc="'+openKey+'"]'):null;
+   if(head)head.scrollIntoView({block:'start',behavior:'smooth'});
+   else window.scrollTo({top:0,behavior:'smooth'});
+  };
+ })();
  document.getElementById('exportBtn').onclick = exportData;
  document.getElementById('themeBtn').onclick = async () => {
   settings.theme = settings.theme === 'dark' ? 'light' : 'dark';
@@ -4000,7 +4136,7 @@ function renderAll(){
   e.target.value = '';
  };
  const lh=document.getElementById('libHead');
- if(lh)lh.onclick=()=>{panels.lib=!panels.lib;settings.panels=panels;saveSet();renderLibSection();};
+ if(lh)lh.onclick=()=>{openPanel('lib');};
  const ctb=document.getElementById('counterToggleBtn'),cform=document.getElementById('counterForm');
  if(ctb)ctb.onclick=()=>{ctb.hidden=true;cform.hidden=false;};
  const ccancel=document.getElementById('counterCancelBtn');
