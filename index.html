@@ -442,15 +442,23 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);
 @media(min-width:520px){.statgrid{grid-template-columns:repeat(3,1fr);}}
 .st .k{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
   color:var(--ink);font-weight:700;margin-bottom:4px;}
-.st .v{font-family:'Anton',sans-serif;font-size:23px;line-height:1;}
+/* value and unit sit on one line, "12.5 km" rather than 12.5 with km stacked
+   underneath, so a figure reads as a single quantity */
+.st{display:flex;flex-direction:column;min-width:0;}
+.st .vu{display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;min-width:0;}
+.st .v{font-family:'Anton',sans-serif;font-size:23px;line-height:1.05;}
 .st .v .of{font-size:14px;color:var(--ink-faint);}
-.st .u{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--ink-faint);margin-top:3px;}
+.st .u{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--ink-faint);}
 .nodata{font-size:12.5px;color:var(--ink-faint);font-style:italic;}
 /* charts were running edge to edge against the panel border, which read as
    cramped, especially the bar tracks. One inset on the panel fixes every
    chart inside it at once. */
-.spanel{padding:0 4px;}
-.hbars{display:flex;flex-direction:column;gap:6px;}
+.spanel{padding:0 2px;}
+/* the row runs the full width of the panel, so the label on the left and the
+   value on the right were sitting flush against the border. Inset the rows
+   rather than the panel so the section headings stay aligned with everything
+   else in the stats view. */
+.hbars{display:flex;flex-direction:column;gap:7px;padding:4px 40px;}
 .hb{display:flex;align-items:center;gap:11px;}
 .hb-l{font-size:12px;color:var(--ink-soft);flex:0 0 92px;text-align:right;}
 .hb-t{flex:1;height:16px;background:var(--sunk);border-radius:2px;overflow:hidden;}
@@ -2992,15 +3000,17 @@ function typeCountRows(counts){
 }
 /* ═══ chart primitives ═══ */
 function nodata(m){return '<p class="nodata">'+(m||'Nothing logged here yet.')+'</p>';}
-function big(k,v,u){return '<div class="st"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="u">'+(u||'')+'</div></div>';}
+function big(k,v,u){return '<div class="st"><div class="k">'+k+'</div><div class="vu"><span class="v">'+v+'</span>'+(u?'<span class="u">'+u+'</span>':'')+'</div></div>';}
 function bigRow(items){return '<div class="statgrid">'+items.join('')+'</div>';}
 function hbar(rows,unit,color){
  rows=rows.filter(r=>r.v>0);
  if(!rows.length)return nodata();
  const max=Math.max.apply(null,rows.map(r=>r.v))||1;
  return '<div class="hbars">'+rows.map(r=>
+  /* the largest bar stops short of the full track so there is always some
+     track visible behind it, otherwise the top bar looks jammed into the edge */
   '<div class="hb"><span class="hb-l">'+r.l+'</span><span class="hb-t"><span class="hb-f" style="width:'+
-  (r.v/max*100).toFixed(1)+'%;background:'+(r.c||color||'var(--track)')+'"></span></span>'+
+  (r.v/max*94).toFixed(1)+'%;background:'+(r.c||color||'var(--track)')+'"></span></span>'+
   '<span class="hb-v">'+(r.d!=null?r.d:r.v)+(unit||'')+'</span></div>').join('')+'</div>';
 }
 function vbar(series,unit,color){
