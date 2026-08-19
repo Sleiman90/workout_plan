@@ -2939,6 +2939,9 @@ function weekAgg(w){
  /* support work is now three counts per day, knee / hip / ankle, rather than
     a list of named exercises. supCount holds the per-area totals for the week. */
  const supCount={knee:0,hip:0,ankle:0,core:0},kneeDay={};
+ /* days on which each area was worked, tracked per area so a week comparison
+    can show "3 knee days" next to "1 ankle day" instead of one merged number */
+ const supDays={knee:0,hip:0,ankle:0,core:0};
  let exs=0,circuits=0;
  Object.keys(knee).forEach(day=>{
   if(!days[day])return;
@@ -2946,7 +2949,7 @@ function weekAgg(w){
   let n=0;
   Object.keys(supCount).forEach(area=>{
    const v=parseInt(c[area],10)||0;
-   if(v>0){supCount[area]+=v;n+=v;}
+   if(v>0){supCount[area]+=v;supDays[area]++;n+=v;}
   });
   exs+=n;
   if(n>0){circuits++;kneeDay[day]=true;}
@@ -2957,7 +2960,7 @@ function weekAgg(w){
   paceKm:paceKm,paceSecs:paceSecs,pace:pace,paceByType:paceByType,durationByType:durationByType,
   elevGain:elevGain,avgHR:avgHR,hrSum:hrSum,hrN:hrN,hrAvgByType:hrAvgByType,typeCounts:typeCounts,
   raceCounts:raceCountsOf(w),
-  sets:sets,muscles:muscles,supCount:supCount,exs:exs,circuits:circuits,
+  sets:sets,muscles:muscles,supCount:supCount,supDays:supDays,exs:exs,circuits:circuits,
   sessions:CORE.filter(k=>days[k]).length,hardness:hardness,
   activeDays:activeDays,activeDone:activeDone,
   strSess:gymDays.filter(k=>days[k]).length,kneeDay:kneeDay,days:days,rate:rate,full:weekDone(w)};
@@ -2965,6 +2968,7 @@ function weekAgg(w){
 function agg(from,to){
  const o={km:0,secs:0,runs:0,longest:0,fastest:null,sets:0,exs:0,circuits:0,
   sessions:0,strSess:0,full:0,kmType:{easy:0,speed:0,long:0},muscles:{},supCount:{knee:0,hip:0,ankle:0,core:0},
+  supDays:{knee:0,hip:0,ankle:0,core:0},
   hardness:{easy:0,medium:0,hard:0},rate:{},rateN:{},weeks:[],paceKm:0,paceSecs:0,
   elevGain:0,typeCounts:{easy:0,speed:0,long:0,strength:0,rest:0},
   raceCounts:{'5k':0,'10k':0,half:0,marathon:0},hrSum:0,hrN:0,activeDays:0,activeDone:0};
@@ -2983,6 +2987,7 @@ function agg(from,to){
   ['easy','speed','long'].forEach(k=>o.kmType[k]+=a.kmType[k]);
   Object.keys(a.muscles).forEach(k=>o.muscles[k]=(o.muscles[k]||0)+a.muscles[k]);
   Object.keys(a.supCount).forEach(k=>o.supCount[k]=(o.supCount[k]||0)+a.supCount[k]);
+  if(a.supDays)Object.keys(a.supDays).forEach(k=>o.supDays[k]=(o.supDays[k]||0)+a.supDays[k]);
   Object.keys(a.rate).forEach(k=>{if(a.rate[k]){o.rate[k]=(o.rate[k]||0)+a.rate[k];o.rateN[k]=(o.rateN[k]||0)+1;}});
  }
  o.pace=o.paceKm?o.paceSecs/o.paceKm:null;
@@ -3326,8 +3331,16 @@ function panelCompare(){
   ['Sessions',a.sessions+'/7',b.sessions+'/7'],
   ['Strength days',String(a.strSess),String(b.strSess)],
   ['Sets',a.sets||0,b.sets||0],
-  ['Knee circuits',a.circuits,b.circuits],
-  ['Knee exercises',a.exs,b.exs],
+  ['Support days',a.circuits,b.circuits],
+  ['Support exercises',a.exs,b.exs],
+  ['Knee days',a.supDays.knee,b.supDays.knee],
+  ['Knee exercises',a.supCount.knee,b.supCount.knee],
+  ['Hip days',a.supDays.hip,b.supDays.hip],
+  ['Hip exercises',a.supCount.hip,b.supCount.hip],
+  ['Ankle days',a.supDays.ankle,b.supDays.ankle],
+  ['Ankle exercises',a.supCount.ankle,b.supCount.ankle],
+  ['Core days',a.supDays.core,b.supDays.core],
+  ['Core exercises',a.supCount.core,b.supCount.core],
   ['Overall rating',(a.rate.overall||'—')+'/5',(b.rate.overall||'—')+'/5']
  ];
  let h='<div class="cmp-pick"><select id="cmpA">'+weekOptions(wA)+'</select>'+
