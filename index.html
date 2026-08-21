@@ -3826,7 +3826,7 @@ function renderWeek(){
   }
   if(isKnee)daysHtml+=exPanel(d,day.id,true);
   else if(opened)daysHtml+=exPanel(d,day.id,false);
-  else daysHtml+='<button class="addknee" data-open="'+day.id+'">+ Add knee work or stretching</button>';
+  else daysHtml+='<button class="addknee" data-open="'+day.id+'">+ Add support work</button>';
   daysHtml+=(!on&&!day.rest?skipRow(day.id,d.skip[day.id]):'');
   daysHtml+='</div></div></div>';
  });
